@@ -18,6 +18,7 @@ y_chel = 0.8  # положение человека по оси y
 a = 1.75  # высота человека метры
 b = 80  # масса человека килограммы
 ti = 1  # длительность пребывания работника на рабочем месте, часов
+z = 2  # высота среза
 
 # КОНСТАНТЫ
 
@@ -30,9 +31,6 @@ harm = {50: [1, 1],
         550: [0.0282, 0.036],
         650: [0.0196, 0.032],
         750: [0.0147, 0.022]}
-
-sum_harm_I = sum([v[0] for v in harm.values()])
-sum_harm_U = sum([v[1] for v in harm.values()])
 
 # ДАННЫЕ О КОНТАКТНОЙ СЕТИ
 
@@ -159,7 +157,7 @@ def electric_calc(x_e, z_e, f_e):
 
 def energy_pass(x_e, z_e):
     res_energy = {freq: [magnetic_calc(x_e, z_e, freq), electric_calc(x_e, z_e, freq)] for freq in harm.keys()}
-    return res_energy
+    return [res_energy, (x_e, z_e)]
 
 
 def full_energy(res_en):
@@ -169,7 +167,7 @@ def full_energy(res_en):
         sum_e += en[1]
     return [sum_e, sum_h]
 
-
+# TODO стекло или металл?
 def full_pass(ext_en):
     sum_h, sum_e = 0, 0
     for fr in ext_en.keys():
@@ -191,7 +189,7 @@ def visual_up():
 
     every_f = [[energy_pass(y_, z) for _ in x] for y_ in y]
 
-    all_field = [[full_energy(x_el) for x_el in y_list] for y_list in every_f]
+    all_field = [[full_energy(x_el[0]) for x_el in y_list] for y_list in every_f]
 
     magnetic = [[x_el[0] for x_el in y_list] for y_list in all_field]
     electric = [[x_el[1] for x_el in y_list] for y_list in all_field]
@@ -200,37 +198,39 @@ def visual_up():
     def do_graph(content, name_, x_lb='Ось x, метры', y_lb='Ось y, метры'):
         ct = plt.contour(x, y, content, alpha=0.75, colors='black', linestyles='dotted', levels=5)
         plt.clabel(ct, fontsize=10)
+        # TODO так?
         plt.imshow(content, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95)
-        plt.colorbar()
+        # plt.colorbar()
 
         for delta_y in [xp_kp, xp_up, xp_nt]:
-            plt.hlines(delta_y, Xmin, Xmax, color='white', linewidth=2)
-        plt.text(6, xp_kp+0.05, 'КП', color='white')
-        plt.text(6.5, xp_up+0.05, 'УП', color='white')
-        plt.text(5.5, xp_nt-0.3, 'НТ', color='white')
+            plt.hlines(delta_y, Xmin, Xmax, color='black', linewidth=2)
+        plt.text(0.1, xp_kp+0.05, 'КП', color='white')
+        plt.text(0.1, xp_up+0.05, 'УП', color='white')
+        plt.text(1, xp_nt-0.3, 'НТ', color='white')
 
         plt.hlines(0.5 * width, 0, length, colors='red', linestyles='--')
         plt.hlines(-0.5 * width, 0, length, colors='red', linestyles='--')
         plt.vlines(0, -0.5 * width, 0.5 * width, colors='red', linestyles='--')
         plt.vlines(length, -0.5 * width, 0.5 * width, colors='red', linestyles='--')
-
-        plt.xlabel(y_lb)
-        plt.ylabel(x_lb)
+        plt.xlabel(x_lb)
+        plt.ylabel(y_lb)
 
         plt.title(name_)
 
-        mng = plt.get_current_fig_manager()
-        mng.window.state('zoomed')
-
-        name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name_}_U_{U}_В_I_{I}_В.png"
-        plt.savefig(name)
-
     plt.figure(1)
-    do_graph(magnetic, 'Магнитное от КС', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    plt.figure(2)
-    do_graph(electric, 'Электрическое от КС', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    plt.figure(3)
-    do_graph(summar, 'Контактная сеть общая энергия', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    name = 'Контактная сеть вид сверху'
+    plt.subplot(1, 3, 1)
+    do_graph(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    plt.subplot(1, 3, 2)
+    do_graph(electric, 'Электрическое', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    plt.subplot(1, 3, 3)
+    do_graph(summar, 'Энергия', x_lb='Ось x, метры', y_lb='Ось y, метры')
+
+    plt.suptitle(name)
+    mng = plt.get_current_fig_manager()
+    # mng.window.state('zoomed')
+
+    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     print('График построен.')
 
@@ -249,10 +249,10 @@ def visual_front():
     z = np.linspace(Zmin, Zmax, dis, endpoint=True)
 
     every_f = [[energy_pass(x_, z_) for x_ in x] for z_ in z]
-    all_field = [[full_energy(x_el) for x_el in y_list] for y_list in every_f]
+    all_field = [[full_energy(x_el[0]) for x_el in y_list] for y_list in every_f]
     summar = [[x_el[0] * x_el[1] for x_el in y_list] for y_list in all_field]
 
-    plt.figure(4)
+    plt.figure(2)
     b = 10 ** (len(str(round(np.amin(summar)))) - 1)  # для правильного отображения линий
     ct = plt.contour(x, z, summar, alpha=0.75, colors='black', linestyles='dotted',
                      levels=[b, 2*b, 5*b, 7*b, 10*b, 20*b, 50*b, 100*b])
@@ -270,26 +270,32 @@ def visual_front():
     plt.vlines(-0.5 * width, 1, height+floor, colors='red', linestyles='--')
     plt.vlines(0.5 * width, 1, height+floor, colors='red', linestyles='--')
 
-    plt.xlabel('Ось x, метры')
+    plt.xlabel('Ось y, метры')
     plt.ylabel('Ось z, метры')
 
     plt.title('Вид сбоку')
 
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+    # mng.window.state('zoomed')
 
-    name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_вид сбоку_U_{U}_В_I_{I}_В.png"
+    name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_вид сбоку.png"
     plt.savefig(name)
 
     print('График построен.')
+    return every_f
 
-def ted_field_calc(x_arr, y_arr, I_g, U_g, n):
+
+def ted_field_calc(x_arr, y_arr, I_g, U_g, n, t):
     ds = 8
 
     # разбиваем ТЭД на узлы
     nodes_x = [x_td1_sr + 0.5*r_td * np.cos(ap) for ap in np.linspace(0, 2*pi, ds)]
     nodes_z = [z_td + 0.5*r_td * np.sin(ap) for ap in np.linspace(0, 2*pi, ds)]
-    nodes_y = [td-td_p for td in [dy_td, -dy_td] for td_p in np.linspace(-0.5*l_td, 0.5*l_td, 4)]
+    if t==1:
+        nodes_y = [dy_td-td_p for td_p in np.linspace(-0.5*l_td, 0.5*l_td, 4)]
+    else:
+        nodes_y = [-dy_td - td_p for td_p in np.linspace(-0.5 * l_td, 0.5 * l_td, 4)]
+    # nodes_y = [td-td_p for td in [dy_td, -dy_td] for td_p in np.linspace(-0.5*l_td, 0.5*l_td, 4)]
 
     points = [[x_, y_, z_] for z_ in nodes_z for x_ in nodes_x for y_ in nodes_y]
 
@@ -316,13 +322,39 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n):
     return [in_point(x_, y_) for y_ in y_arr for x_ in x_arr]
 
 
+def ted_lines():
+    plt.hlines(dy_td - 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue', linestyles='--')
+    plt.hlines(dy_td + 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue', linestyles='--')
+    plt.vlines(x_td1_sr - l_td * 0.5, dy_td - 0.5 * r_td, dy_td + 0.5 * r_td, colors='blue', linestyles='--')
+    plt.vlines(x_td1_sr + l_td * 0.5, dy_td - 0.5 * r_td, dy_td + 0.5 * r_td, colors='blue', linestyles='--')
+    plt.hlines(-dy_td - 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue',
+               linestyles='--')
+    plt.hlines(-dy_td + 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue',
+               linestyles='--')
+    plt.vlines(x_td1_sr - l_td * 0.5, -dy_td - 0.5 * r_td, -dy_td + 0.5 * r_td, colors='blue', linestyles='--')
+    plt.vlines(x_td1_sr + l_td * 0.5, -dy_td - 0.5 * r_td, -dy_td + 0.5 * r_td, colors='blue', linestyles='--')
+
+
+def triang_do(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='Ось y, метры'):
+    plt.axis('equal')
+    plt.tricontourf(triangulation, scalar_, cmap='YlOrRd')
+    # plt.colorbar()
+    tcf = plt.tricontour(triangulation, scalar_, alpha=0.75, colors='black', linestyles='dotted', levels=5)
+    plt.clabel(tcf, fontsize=10)
+
+    plt.xlabel(x_lb)
+    plt.ylabel(y_lb)
+
+    plt.title(name_)
+
+
 def visual_up_locomotive(ext_f):
     print('График строится..................')
 
     Xmin = 0
     Xmax = length
     Ymax = -0.5 * width
-    Ymin = -1 * Ymax
+    Ymin = -Ymax
 
     dis = 100
     x_ln = np.linspace(Xmin, Xmax, dis, endpoint=True)
@@ -331,22 +363,21 @@ def visual_up_locomotive(ext_f):
     chel_y = np.where(y_ln == max([y_ for y_ in y_ln if y_ <= y_chel]))[0][0]
 
     def graph_do(znach, name_, x_lb='', y_lb=''):
-        ct = plt.contour(x_ln, y_ln, znach, alpha=0.75, colors='black', linestyles='dotted', levels=5)
+        ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='white', linestyles='dotted', levels=5)
         plt.clabel(ct, fontsize=10)
         plt.imshow(znach, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95, norm=colors.LogNorm())
-        plt.colorbar()
+        # plt.colorbar()
 
-        plt.xlabel(y_lb)
-        plt.ylabel(x_lb)
+        plt.xlabel(x_lb)
+        plt.ylabel(y_lb)
 
         plt.title(name_)
 
-        mng = plt.get_current_fig_manager()
-        mng.window.state('zoomed')
-
-        name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name_}_вид_сверху_U_{U}_В_I_{I}_В.png"
-        plt.savefig(name)
-
+    # x_st =
+    # x_ed =
+    # y_st =
+    # y_ed =
+    # kabina_f =
     ekran = [[full_pass(x_el) for x_el in y_list] for y_list in ext_f]
 
     magnetic = [[x_el[0] for x_el in y_list] for y_list in ekran]
@@ -354,73 +385,20 @@ def visual_up_locomotive(ext_f):
     summar = [[x_el[0]*x_el[1] for x_el in y_list] for y_list in ekran]
     chel_per = summar[chel_y][chel_x]
 
-    plt.figure(5)
-    graph_do(magnetic, 'Кабина магнитное переменное', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    plt.figure(6)
-    i = 0
-    chel_h_harm = []
-    for fr in harm.keys():
-        harm_h = [[x_el[fr][0] / kh_metal[fr] for x_el in y_list] for y_list in ext_f]
-        chel_h_harm.append(harm_h[chel_y][chel_x])
-        i += 1
-        plt.subplot(3, 3, i)
-        ct = plt.contour(x_ln, y_ln, harm_h, alpha=0.75, colors='black', linestyles='dotted', levels=3)
-        plt.clabel(ct, fontsize=8)
-        plt.imshow(harm_h, extent=[Xmin, Xmax, Ymax, Ymin],  cmap='YlOrRd', alpha=0.95)
-        plt.title(str(fr))
-    plt.subplot(3, 3, 9)
-    print("Гармоники магнитного поля:\n", chel_h_harm)
-    plt.bar(range(0, 8), chel_h_harm)
+    # TODO кажется он перевёрнутый
+    plt.figure(3)
+    name = 'Вид сверху кабина переменное'
+    plt.subplot(1, 3, 1)
+    graph_do(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    plt.subplot(1, 3, 2)
+    graph_do(electric, 'Электрическое', x_lb='Ось x, метры')
+    plt.subplot(1, 3, 3)
+    graph_do(summar, 'Общее', x_lb='Ось x, метры',)
 
-    plt.figure(7)
-    graph_do(electric, 'Кабина электрическое переменное', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    plt.figure(8)
-    i = 0
-    chel_e_harm = []
-    for fr in harm.keys():
-        harm_e = [[x_el[fr][1] / ke_metal for x_el in y_list] for y_list in ext_f]
-        chel_e_harm.append(harm_e[chel_y][chel_x])
-        i += 1
-        plt.subplot(3, 3, i)
-        ct = plt.contour(x_ln, y_ln, harm_e, alpha=0.75, colors='black', linestyles='dotted', levels=3)
-        plt.clabel(ct, fontsize=8)
-        plt.imshow(harm_e, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95)
-        plt.title(str(fr))
-    plt.subplot(3, 3, 9)
-    print("Гармоники электрического поля:\n", chel_h_harm)
-    plt.bar(range(0, 8), chel_e_harm)
-
-    plt.figure(9)
-    graph_do(summar, 'Кабина общее переменное', x_lb='', y_lb='')
-
-    def triang_do(scalar_, name_, x_lb='Ось x, метры', y_lb='Ось y, метры'):
-        plt.axis('equal')
-        plt.tricontourf(triangulation, scalar_, cmap='YlOrRd')
-        plt.colorbar()
-        tcf = plt.tricontour(triangulation, scalar_, alpha=0.75, colors='black', linestyles='dotted', levels=5)
-        plt.clabel(tcf, fontsize=10)
-
-        plt.hlines(dy_td - 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue', linestyles='--')
-        plt.hlines(dy_td + 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue', linestyles='--')
-        plt.vlines(x_td1_sr - l_td * 0.5, dy_td - 0.5 * r_td, dy_td + 0.5 * r_td, colors='blue', linestyles='--')
-        plt.vlines(x_td1_sr + l_td * 0.5, dy_td - 0.5 * r_td, dy_td + 0.5 * r_td, colors='blue', linestyles='--')
-        plt.hlines(-dy_td - 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue',
-                   linestyles='--')
-        plt.hlines(-dy_td + 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue',
-                   linestyles='--')
-        plt.vlines(x_td1_sr - l_td * 0.5, -dy_td - 0.5 * r_td, -dy_td + 0.5 * r_td, colors='blue', linestyles='--')
-        plt.vlines(x_td1_sr + l_td * 0.5, -dy_td - 0.5 * r_td, -dy_td + 0.5 * r_td, colors='blue', linestyles='--')
-
-        plt.xlabel(y_lb)
-        plt.ylabel(x_lb)
-
-        plt.title(name_)
-
-        mng = plt.get_current_fig_manager()
-        mng.window.state('zoomed')
-
-        name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name_}_U_{U}_В_I_{I}_В.png"
-        plt.savefig(name)
+    plt.suptitle(name)
+    mng = plt.get_current_fig_manager()
+    # mng.window.state('zoomed')
+    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     print('Расчёт поля от тяговых двигателей')
     dis = 40
@@ -428,12 +406,6 @@ def visual_up_locomotive(ext_f):
     y_ln = np.linspace(Ymin, Ymax, dis, endpoint=True)
     chel_x = np.where(x_ln == max([x_ for x_ in x_ln if x_ <= x_chel]))[0][0]
     chel_y = np.where(y_ln == max([y_ for y_ in y_ln if y_ <= y_chel]))[0][0]
-    ted_field = ted_field_calc(x_ln, y_ln, 880, 1950, 5)
-
-    magnetic = [el[0]/kh_post for el in ted_field]
-    electric = [el[1]/ke_post for el in ted_field]
-    summar = [el[0]/kh_post * el[1]/ke_post for el in ted_field]
-    chel_post = summar[(dis-1)*chel_y + chel_x]
 
     nodes_x = [x_ for _ in y_ln for x_ in x_ln]
     nodes_y = [y_ for y_ in y_ln for _ in x_ln]
@@ -441,17 +413,133 @@ def visual_up_locomotive(ext_f):
                 range(0, dis - 1)]
     elements.extend(
         [[i + j * dis, (j + 1) * dis + i, (j + 1) * dis + i + 1] for j in range(0, dis - 1) for i in range(0, dis - 1)])
-    triangulation = tri.Triangulation(nodes_x, nodes_y, elements)
+    tr = tri.Triangulation(nodes_x, nodes_y, elements)
 
-    plt.figure(10)
-    triang_do(magnetic, 'Кабина магнитное постоянное', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    plt.figure(11)
-    triang_do(electric, 'Кабина электрическое постоянное', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    plt.figure(12)
-    triang_do(summar, 'Кабина общее постоянное', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    ted_field_1 = ted_field_calc(x_ln, y_ln, 880, 1950, 5, t=1)
+    ted_field_2 = ted_field_calc(x_ln, y_ln, 880, 1950, 5, t=2)
+    ted_field = np.array(ted_field_2) + np.array(ted_field_1)
+
+    magnetic = [el[0]/kh_post for el in ted_field]
+    electric = [el[1]/ke_post for el in ted_field]
+    summar = [el[0]/kh_post * el[1]/ke_post for el in ted_field]
+    chel_post = summar[(dis-1)*chel_y + chel_x]
+
+
+    plt.figure(4)
+    name = 'Вид сверху кабина постоянное'
+    plt.subplot(1, 3, 1)
+    triang_do(tr, magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    ted_lines()
+    plt.subplot(1, 3, 2)
+    triang_do(tr, electric, 'Электрическое', x_lb='Ось x, метры')
+    ted_lines()
+    plt.subplot(1, 3, 3)
+    triang_do(tr, summar, 'Общее', x_lb='Ось x, метры')
+    ted_lines()
+
+    plt.suptitle(name)
+    mng = plt.get_current_fig_manager()
+    # mng.window.state('zoomed')
+    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     print('График построен.')
+
     return (chel_per, chel_post)
+
+def visual_front_locomotive(ext_f):
+    pass
+    # TODO вид в кабине
+    # TODO гармоники энергии
+    #
+    # Xmin = -1 * max(xp, width) * 1.15
+    # Xmax = xp_up * 1.2
+    # Zmax = 0.1
+    # Zmin = max(h_kp, h_nt, h_up) * 1.1
+    #
+    # x = np.linspace(Xmin, Xmax, dis, endpoint=True)
+    # z = np.linspace(Zmin, Zmax, dis, endpoint=True)
+    #
+    # dis = 100
+    # x_ln = np.linspace(Xmin, Xmax, dis, endpoint=True)
+    # y_ln = np.linspace(Ymin, Ymax, dis, endpoint=True)
+    # chel_x = np.where(x_ln == max([x_ for x_ in x_ln if x_ <= x_chel]))[0][0]
+    # chel_y = np.where(y_ln == max([y_ for y_ in y_ln if y_ <= y_chel]))[0][0]
+    #
+    # def graph_do(znach, name_, x_lb='', y_lb=''):
+    #     ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='white', linestyles='dotted', levels=5)
+    #     plt.clabel(ct, fontsize=10)
+    #     plt.imshow(znach, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95, norm=colors.LogNorm())
+    #     # plt.colorbar()
+    #
+    #     plt.xlabel(x_lb)
+    #     plt.ylabel(y_lb)
+    #
+    #     plt.title(name_)
+    #
+    # ekran = [[full_pass(x_el) for x_el in y_list] for y_list in ext_f]
+    #
+    # magnetic = [[x_el[0] for x_el in y_list] for y_list in ekran]
+    # electric = [[x_el[1] for x_el in y_list] for y_list in ekran]
+    # summar = [[x_el[0]*x_el[1] for x_el in y_list] for y_list in ekran]
+    # chel_per = summar[chel_y][chel_x]
+    #
+    # plt.figure(3)
+    # name = 'Вид сверху кабина переменное'
+    # plt.subplot(1, 3, 1)
+    # graph_do(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    # plt.subplot(1, 3, 2)
+    # graph_do(electric, 'Электрическое', x_lb='Ось x, метры')
+    # plt.subplot(1, 3, 3)
+    # graph_do(summar, 'Общее', x_lb='Ось x, метры',)
+    #
+    # plt.suptitle(name)
+    # mng = plt.get_current_fig_manager()
+    # # mng.window.state('zoomed')
+    # plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    #
+    # print('Расчёт поля от тяговых двигателей')
+    # dis = 40
+    # x_ln = np.linspace(Xmin, Xmax, dis, endpoint=True)
+    # y_ln = np.linspace(Ymin, Ymax, dis, endpoint=True)
+    # chel_x = np.where(x_ln == max([x_ for x_ in x_ln if x_ <= x_chel]))[0][0]
+    # chel_y = np.where(y_ln == max([y_ for y_ in y_ln if y_ <= y_chel]))[0][0]
+    #
+    # nodes_x = [x_ for _ in y_ln for x_ in x_ln]
+    # nodes_y = [y_ for y_ in y_ln for _ in x_ln]
+    # elements = [[i + j * dis, i + 1 + j * dis, (j + 1) * dis + i + 1] for j in range(0, dis - 1) for i in
+    #             range(0, dis - 1)]
+    # elements.extend(
+    #     [[i + j * dis, (j + 1) * dis + i, (j + 1) * dis + i + 1] for j in range(0, dis - 1) for i in range(0, dis - 1)])
+    # tr = tri.Triangulation(nodes_x, nodes_y, elements)
+    #
+    # ted_field_1 = ted_field_calc(x_ln, y_ln, 880, 1950, 5, t=1)
+    # ted_field_2 = ted_field_calc(x_ln, y_ln, 880, 1950, 5, t=2)
+    # ted_field = np.array(ted_field_2) + np.array(ted_field_1)
+    #
+    # magnetic = [el[0]/kh_post for el in ted_field]
+    # electric = [el[1]/ke_post for el in ted_field]
+    # summar = [el[0]/kh_post * el[1]/ke_post for el in ted_field]
+    # chel_post = summar[(dis-1)*chel_y + chel_x]
+    #
+    #
+    # plt.figure(4)
+    # name = 'Вид сверху кабина постоянное'
+    # plt.subplot(1, 3, 1)
+    # triang_do(tr, magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    # ted_lines()
+    # plt.subplot(1, 3, 2)
+    # triang_do(tr, electric, 'Электрическое', x_lb='Ось x, метры')
+    # ted_lines()
+    # plt.subplot(1, 3, 3)
+    # triang_do(tr, summar, 'Общее', x_lb='Ось x, метры')
+    # ted_lines()
+    #
+    # plt.suptitle(name)
+    # mng = plt.get_current_fig_manager()
+    # # mng.window.state('zoomed')
+    # plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    #
+    # print('График построен.')
 
 
 ## РАСЧЁТ СТАТИСТИКИ ##
@@ -459,7 +547,7 @@ def visual_up_locomotive(ext_f):
 S = (a * b / 3600) ** 1 / 2
 p = ti / 24  # статистическая вероятность воздействия
 
-z = 2
+
 print('\nПараметры сети')
 print(f'Высота КП: {h_kp} м')
 print(f'Высота НЧ: {h_nt} м')
@@ -471,13 +559,15 @@ print(f'Высота среза: {z} метров')
 ## ПОСТРОЕНИЕ ГРАФИКА ##
 
 print('\nБез электровоза')
-cont_field = visual_up()
+cont_f_up = visual_up()
 
 print('\nВид спереди')
-visual_front()
+cont_f_front = visual_front()
+exit()
 
-print('\nПоле в кабин')
-doza = visual_up_locomotive(cont_field)
+print('\nПоле в кабине')
+doza = visual_up_locomotive(cont_f_up)
+visual_front_locomotive(cont_f_front)
 
 print('\nВысота среза: %.2f' % chel)
 
@@ -496,3 +586,4 @@ Dpo = Dco / b
 print('Удельная суточная доза поглощённой энергии: %.4f' % Dpo)
 
 plt.show()
+

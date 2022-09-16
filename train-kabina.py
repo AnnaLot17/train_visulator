@@ -306,10 +306,12 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n, t, type_='UP'):
         nodes_y = [-dy_td - td_p for td_p in np.linspace(-0.5 * l_td, 0.5 * l_td, 4)]
     # nodes_y = [td-td_p for td in [dy_td, -dy_td] for td_p in np.linspace(-0.5*l_td, 0.5*l_td, 4)]
 
-    points = [[x_, y_, z_] for z_ in nodes_z for x_ in nodes_x for y_ in nodes_y]
+    points = [[x_, y_, z_] for z_ in nodes_z for y_ in nodes_y for x_ in nodes_x]
 
     # разбиваем кабину на узлы
-    minus = [[x_, y_] for y_ in y_arr for x_ in x_arr]
+    x_cab = np.linspace(0, length, 40)
+    y_cab = np.linspace(-0.5*width, 0.5*width, 40)
+    minus = [[x_, y_] for y_ in y_cab for x_ in x_cab]
 
     def in_point(x_, y_, z_):
         H_ob, E_ob = 0, 0
@@ -327,20 +329,32 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n, t, type_='UP'):
     if type_ == 'UP':
         return [in_point(x_, y_, z) for y_ in y_arr for x_ in x_arr]
     else:
-        return [in_point(chel, y_, z) for y_ in y_arr for x_ in x_arr]
+        return [in_point(chel, y_, z_) for z_ in y_arr for y_ in x_arr]
 
 
 def ted_lines():
-    plt.hlines(dy_td - 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue', linestyles='--')
-    plt.hlines(dy_td + 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue', linestyles='--')
-    plt.vlines(x_td1_sr - l_td * 0.5, dy_td - 0.5 * r_td, dy_td + 0.5 * r_td, colors='blue', linestyles='--')
-    plt.vlines(x_td1_sr + l_td * 0.5, dy_td - 0.5 * r_td, dy_td + 0.5 * r_td, colors='blue', linestyles='--')
-    plt.hlines(-dy_td - 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue',
+    x_td, y_td = r_td, l_td
+    plt.hlines(dy_td - 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue', linestyles='--')
+    plt.hlines(dy_td + 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue', linestyles='--')
+    plt.vlines(x_td1_sr - x_td * 0.5, dy_td - 0.5 * y_td, dy_td + 0.5 * y_td, colors='blue', linestyles='--')
+    plt.vlines(x_td1_sr + x_td * 0.5, dy_td - 0.5 * y_td, dy_td + 0.5 * y_td, colors='blue', linestyles='--')
+    plt.hlines(-dy_td - 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue',
                linestyles='--')
-    plt.hlines(-dy_td + 0.5 * r_td, x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5, colors='blue',
+    plt.hlines(-dy_td + 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue',
                linestyles='--')
-    plt.vlines(x_td1_sr - l_td * 0.5, -dy_td - 0.5 * r_td, -dy_td + 0.5 * r_td, colors='blue', linestyles='--')
-    plt.vlines(x_td1_sr + l_td * 0.5, -dy_td - 0.5 * r_td, -dy_td + 0.5 * r_td, colors='blue', linestyles='--')
+    plt.vlines(x_td1_sr - x_td * 0.5, -dy_td - 0.5 * y_td, -dy_td + 0.5 * y_td, colors='blue', linestyles='--')
+    plt.vlines(x_td1_sr + x_td * 0.5, -dy_td - 0.5 * y_td, -dy_td + 0.5 * y_td, colors='blue', linestyles='--')
+
+def ted_lines_front():
+    plt.hlines(z_td + 0.5*r_td, dy_td - 0.5*l_td, dy_td + 0.5*l_td, colors='blue', linestyles='--')
+    plt.hlines(z_td - 0.5*r_td, dy_td - 0.5*l_td, dy_td + 0.5*l_td, colors='blue', linestyles='--')
+    plt.hlines(z_td + 0.5*r_td, -dy_td - 0.5*l_td, -dy_td + 0.5*l_td, colors='blue', linestyles='--')
+    plt.hlines(z_td - 0.5*r_td, -dy_td - 0.5*l_td, -dy_td + 0.5*l_td, colors='blue', linestyles='--')
+
+    plt.vlines(dy_td - 0.5*l_td, z_td - 0.5*r_td, z_td + 0.5*r_td, colors='blue', linestyles='--')
+    plt.vlines(dy_td + 0.5*l_td, z_td - 0.5*r_td, z_td + 0.5*r_td, colors='blue', linestyles='--')
+    plt.vlines(-dy_td - 0.5*l_td, z_td - 0.5*r_td, z_td + 0.5*r_td, colors='blue', linestyles='--')
+    plt.vlines(-dy_td + 0.5*l_td, z_td - 0.5*r_td, z_td + 0.5*r_td, colors='blue', linestyles='--')
 
 
 def triang_do(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='Ось y, метры'):
@@ -510,30 +524,30 @@ def visual_front_locomotive(ext_f):
     tr = tri.Triangulation(nodes_y, nodes_z, elements)
 
     ted_field_1 = ted_field_calc(y_ln, z_ln, 880, 1950, 5, t=1, type_='FRONT')
-    # ted_field_2 = ted_field_calc(y_ln, z_ln, 880, 1950, 5, t=2)
-    # ted_field = np.array(ted_field_2) + np.array(ted_field_1)
-    ted_field = ted_field_1
+    ted_field_2 = ted_field_calc(y_ln, z_ln, 880, 1950, 5, t=2, type_='FRONT')
+    ted_field = np.array(ted_field_2) + np.array(ted_field_1)
+
 
     fl = np.where(z_ln == max([z_ for z_ in z_ln if z_ <= x_chel]))[0][0]*(dis-1)
 
     # TODO правильный экран
-    # magnetic = [el[0]/kh_post for el in ted_field]
-    # electric = [el[1]/ke_post for el in ted_field]
+    # # magnetic = [el[0]/kh_post for el in ted_field]
+    # # electric = [el[1]/ke_post for el in ted_field]
     magnetic = [el[0]/1 for el in ted_field]
     electric = [el[1]/1 for el in ted_field]
     summar = [magnetic[i]*electric[i] for i in range(0, len(magnetic))]
 
-    plt.figure(4)
+    plt.figure(6)
     name = 'Вид спереди кабина постоянное'
     plt.subplot(1, 3, 1)
     triang_do(tr, magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    # ted_lines()
+    ted_lines_front()
     plt.subplot(1, 3, 2)
     triang_do(tr, electric, 'Электрическое', x_lb='Ось x, метры')
-    # ted_lines()
+    ted_lines_front()
     plt.subplot(1, 3, 3)
     triang_do(tr, summar, 'Общее', x_lb='Ось x, метры')
-    # ted_lines()
+    ted_lines_front()
 
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
@@ -561,15 +575,16 @@ print(f'Высота среза: {z} метров')
 ## ПОСТРОЕНИЕ ГРАФИКА ##
 
 print('\nБез электровоза')
-cont_f_up = visual_up()
+# cont_f_up = visual_up()
 
 print('\nВид спереди')
 cont_f_front = visual_front()
 
 print('\nПоле в кабине сверху')
-doza = visual_up_locomotive(cont_f_up)
+# doza = visual_up_locomotive(cont_f_up)
 print('\nПоле в кабине спереди')
 visual_front_locomotive(cont_f_front)
+plt.show()
 exit()
 
 print('\nВысота среза: %.2f' % chel)
@@ -588,5 +603,5 @@ Dco = doza[1] * ti * S * p
 Dpo = Dco / b
 print('Удельная суточная доза поглощённой энергии: %.4f' % Dpo)
 
-plt.show()
+
 

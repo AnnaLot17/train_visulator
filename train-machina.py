@@ -254,18 +254,19 @@ def oborud(element, v1arr, v2arr, v3, type_='FRONT', ver_='PER'):
 
     return res
 
-def do_draw(h_lines, v_lines, c, type_, plot):
+
+def do_draw(h_lines, v_lines, c, type_):
     li = '--'
     if type_ == 'FRONT':
         for h in h_lines:
-            plot.hlines(floor + h[0], -0.5 * width + h[1], -0.5 * width + h[2], colors=c, linestyles=li)
+            plt.hlines(floor + h[0], -0.5 * width + h[1], -0.5 * width + h[2], colors=c, linestyles=li)
         for v in v_lines:
-            plot.vlines(-0.5 * width + v[0], floor + v[1], floor + v[2], colors=c, linestyles=li)
+            plt.vlines(-0.5 * width + v[0], floor + v[1], floor + v[2], colors=c, linestyles=li)
     else:
         for h in h_lines:
-            plot.hlines(-0.5 * width + h[0], length + h[1], length + h[2], colors=c, linestyles=li)
+            plt.hlines(-0.5 * width + h[0], length + h[1], length + h[2], colors=c, linestyles=li)
         for v in v_lines:
-            plot.vlines(length + v[0], -0.5 * width + v[1], -0.5 * width + v[2], colors=c, linestyles=li)
+            plt.vlines(length + v[0], -0.5 * width + v[1], -0.5 * width + v[2], colors=c, linestyles=li)
 
 
 def lines_oborud(oborud_, color, type_='FRONT', plot=plt):
@@ -287,23 +288,23 @@ def lines_oborud(oborud_, color, type_='FRONT', plot=plt):
     do_draw(h_lines, v_lines, color, type_, plot)
 
 
-def lines_shina(shina, color, type_='FRONT', plot=plt):
+def lines_shina(shina_, color, type_='FRONT'):
     h_lines = []
     v_lines = []
     if type_ == 'FRONT':
-        for sh in shina:
+        for sh in shina_:
             if sh[1][1] != 0:
                 h_lines.append([sh[0][2], sh[0][1], sh[0][1]+sh[1][1]])
             if sh[1][2] != 0:
                 v_lines.append([sh[0][1], sh[0][2], sh[0][2]+sh[1][2]])
     else:
-        for sh in shina:
+        for sh in shina_:
             if sh[1][0] != 0:
                 h_lines.append([sh[0][1], sh[0][0], sh[0][0] + sh[1][0]])
             if sh[1][1] != 0:
                 v_lines.append([sh[0][0], sh[0][1], sh[0][1] + sh[1][1]])
 
-    do_draw(h_lines, v_lines, color, type_, plot)
+    do_draw(h_lines, v_lines, color, type_)
 
 
 # TODO достаём внешнее поле из первого модуля
@@ -325,29 +326,27 @@ def make_triang(x_arr, y_arr):
     return tri.Triangulation(nodes_x, nodes_y, elements)
 
 
-def triang_draw(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='Ось y, метры', plot=plt):
-    plot.axis('equal')
-    plot.tricontourf(triangulation, scalar_, cmap='YlOrRd')
-    plot.colorbar()
-    tcf = plot.tricontour(triangulation, scalar_, alpha=0.75, colors='black', linestyles='dotted', levels=5)
-    plot.clabel(tcf, fontsize=10)
+def triang_draw(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='Ось y, метры'):
+    plt.axis('equal')
+    plt.tricontourf(triangulation, scalar_, cmap='YlOrRd')
+    plt.colorbar()
+    tcf = plt.tricontour(triangulation, scalar_, alpha=0.75, colors='black', linestyles='dotted', levels=5)
+    plt.clabel(tcf, fontsize=10)
 
-    plot.xlabel(x_lb)
-    plot.ylabel(y_lb)
+    plt.xlabel(x_lb)
+    plt.ylabel(y_lb)
 
-    plot.title(name_)
+    plt.title(name_)
 
-    mng = plot.get_current_fig_manager()
-    mng.window.state('zoomed')
+    # mng = plot.get_current_fig_manager()
+    # mng.window.state('zoomed')
 
-    # name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name_}_U_{U}_В_I_{I}_В.png"
-    # plot.savefig(name)
+    name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name_}.png"
+    plt.savefig(name)
 
 
 def visual_up():
-    # TODO вид сверху: по 1 шт
-
-
+    # TODO вид сверху: по 1 ш
 
     print('График строится..................')
 
@@ -361,28 +360,15 @@ def visual_up():
 
     tr = make_triang(x_ln, y_ln)
 
-    sh_f_post = shina(sh_post, x_arr, y_arr, z, type_='UP', ver_='POST')
-    ob_f_post = oborud(ob_post, x_ln, y_ln, z, type_='UP', ver_='POST')
-    magnetic = [sh_f_post[i][0]+ob_f_post[i][0] for i in range(0, len(x_arr)*len(y_arr)]
-    electric = [sh_f_post[i][1]+ob_f_post[i][1] for i in range(0, len(x_arr)*len(y_arr)]
-    post_all = [magnetic[i]*electric[i] for i in len(magnetic)]
+    F = [x*y for y in y_ln for x in x_ln]
+
+    # sh_f_post = shina(sh_post, x_arr, y_arr, z, type_='UP', ver_='POST')
+    # ob_f_post = oborud(ob_post, x_ln, y_ln, z, type_='UP', ver_='POST')
+    # magnetic = [sh_f_post[i][0]+ob_f_post[i][0] for i in range(0, len(x_arr)*len(y_arr)]
+    # electric = [sh_f_post[i][1]+ob_f_post[i][1] for i in range(0, len(x_arr)*len(y_arr)]
+    # post_all = [magnetic[i]*electric[i] for i in len(magnetic)]
 
     plt.figure(1)
-    #    TODO переменный магнетизм, переменный электричество
-    plt.figure(2)
-    #    TODO пост.эле. пер.эл
-    plt.figure(3)
-    #    TODO энергия постоянный
-    #    TODO энергия переменный
-    plt.figure(4)
-    #    TODO переменный гаромоники ток
-    plt.figure(5)
-    #    TODO переменный гаромоники электричество
-    plt.figure(6)
-    #    TODO переменный гаромоники общий
-
-
-
     triang_draw(tr, F, 'up test')
     lines_shina(sh_vu_cp, 'turquoise', type_='UP')
     lines_shina(sh_cp_td, 'c', type_='UP')
@@ -390,42 +376,80 @@ def visual_up():
     lines_oborud(cp, 'magenta', type_='UP')
 
 
+    #    TODO переменный магнетизм,
+    #     переменный электричество
+    # plt.figure(2)
+    #    TODO пост.эле. пер.эл
+    # plt.figure(3)
+    #    TODO энергия постоянный
+    #    TODO энергия переменный
+    # plt.figure(4)
+    #    TODO переменный гаромоники ток
+    # plt.figure(5)
+    #    TODO переменный гаромоники электричество
+    # plt.figure(6)
+    #    TODO переменный гаромоники общий
+
+
+
+
+
 def visual_front():
-    # TODO вид сбоку 3-8:
+    # TODO вид спереди 3-8:
     #    TODO энергия постоянный
     #    TODO энергия переменный
     #    TODO энергия переменный гармоники
     print('График строится..................')
 
-    Xmax = -0.5 * width
-    Xmin = -Xmax
+    Ymax = -0.5 * width
+    Ymin = -Ymax
     Zmax = 0.1
     Zmin = height+floor
 
-    x_ln = np.linspace(Xmin, Xmax, dis, endpoint=True)
+    y_ln = np.linspace(Ymin, Ymax, dis, endpoint=True)
     z_ln = np.linspace(Zmin, Zmax, dis, endpoint=True)
 
-    tr = make_triang(x_ln,z_ln)
+    tr = make_triang(y_ln, z_ln)
 
     # TODO это для проверки
-    G = [i for i in range(0, dis*dis)]
+    G = [z*y for z in z_ln for y in y_ln]
+    i = 2  # потом другое число
 
-    plt.figure(2)
-    triang_draw(tr, G, 'front test', y_lb='Ось z, метры')
-    lines_shina(sh_vu_cp, 'turquoise')
-    lines_shina(sh_cp_td, 'blue')
-    lines_oborud(vu, 'c')
-    lines_oborud(cp, 'magenta')
+    for sr in FR.keys():
+        plt.figure(i)
+        i += i+1
+        G = [z * y * sr for z in z_ln for y in y_ln]
+        triang_draw(tr, G, 'front test', y_lb='Ось z, метры')
+        lines_shina(sh_vu_cp, 'turquoise')
+        lines_shina(sh_cp_td, 'blue')
+        lines_oborud(vu, 'c')
+        lines_oborud(cp, 'magenta')
 
 
 
 ## ПОСТРОЕНИЕ ГРАФИКА ##
 
-
+# формат
+# номер среза: расстояние в метрах от стенки, разделяющей кабину и машинное отделение
+FR = {3: 0.9,
+      4: 1.8,
+      5: 2.7,
+      6: 3.6,
+      7: 4.5,
+      8: 5.6}
 
 
 visual_up()
 visual_front()
+
+# Уже сделано:
+# - рыбы графиков
+# - координаты постоянных шин и оборудования
+# -- КРОМЕ ТЭД
+# - рисование шин и оборудования с координат
+# - ? расчёт постоянных шин ?
+
+
 
 # TODO переменные шины и оборудование
 

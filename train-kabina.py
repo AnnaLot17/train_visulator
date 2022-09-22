@@ -17,8 +17,8 @@ I_ted = 880  # сила тока в ТЭД, А
 U_ted = 1950  # напряжение в ТЭД, В
 
 # СТАТИСТИЧЕСКИЕ ДАННЫЕ
-x_chel = 1  # положение человека по оси х
-y_chel = 0.8  # положение человека по оси y
+x_chel = 0.9  # положение человека по оси х
+y_chel = 1  # положение человека по оси y
 a = 1.75  # высота человека метры
 b = 80  # масса человека килограммы
 ti = 1  # длительность пребывания работника на рабочем месте, часов
@@ -56,7 +56,7 @@ all_length = 15.2  # длина всего локомотива
 width = 2.8  # ширина кабины
 height = 2.6  # высота кабины
 floor = 2  # расстояние от земли до дна кабины
-bor = [0.1, 0.4, 1.1]  # узлы окна
+bor = [0.27, 0.6, 1.2]  # узлы окна
 z_chel = floor + 0.7  # где находится человек по оси z
 
 metal_mu = 1000  # относительная магнитная проницаемость стали
@@ -364,39 +364,81 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
 
 
 def kab_lines_up():
-    plt.hlines(y_chel-0.2, x_chel-0.2, x_chel+0.2, colors='white', linestyles='--')
-    plt.hlines(y_chel+0.2, x_chel-0.2, x_chel+0.2, colors='white', linestyles='--')
-    plt.hlines(-y_chel-0.2, x_chel-0.2, x_chel+0.2, colors='white', linestyles='--')
-    plt.hlines(-y_chel+0.2, x_chel-0.2, x_chel+0.2, colors='white', linestyles='--')
-    plt.vlines(x_chel-0.2, y_chel-0.2, y_chel+0.2, colors='white', linestyles='--')
-    plt.vlines(x_chel+0.2, y_chel-0.2, y_chel+0.2, colors='white', linestyles='--')
-    plt.vlines(x_chel-0.2, -y_chel-0.2, -y_chel+0.2, colors='white', linestyles='--')
-    plt.vlines(x_chel+0.2, -y_chel-0.2, -y_chel+0.2, colors='white', linestyles='--')
+    d = 0.12
+    plt.hlines(y_chel-d, x_chel-d, x_chel+d, colors='white', linestyles='--')
+    plt.hlines(y_chel+d, x_chel-d, x_chel+d, colors='white', linestyles='--')
+    plt.hlines(-y_chel-d, x_chel-d, x_chel+d, colors='white', linestyles='--')
+    plt.hlines(-y_chel+d, x_chel-d, x_chel+d, colors='white', linestyles='--')
+    plt.vlines(x_chel-d, y_chel-d, y_chel+d, colors='white', linestyles='--')
+    plt.vlines(x_chel+d, y_chel-d, y_chel+d, colors='white', linestyles='--')
+    plt.vlines(x_chel-d, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
+    plt.vlines(x_chel+d, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
+
+    plt.hlines(y_chel-d, x_chel+d+0.05, x_chel+d+0.10, colors='white', linestyles='--')
+    plt.hlines(y_chel+d, x_chel+d+0.05, x_chel+d+0.10, colors='white', linestyles='--')
+    plt.hlines(-y_chel-d, x_chel+d+0.05, x_chel+d+0.10, colors='white', linestyles='--')
+    plt.hlines(-y_chel+d, x_chel+d+0.05, x_chel+d+0.10, colors='white', linestyles='--')
+    plt.vlines(x_chel+d+0.05, y_chel-d, y_chel+d, colors='white', linestyles='--')
+    plt.vlines(x_chel+d+0.10, y_chel-d, y_chel+d, colors='white', linestyles='--')
+    plt.vlines(x_chel+d+0.05, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
+    plt.vlines(x_chel+d+0.10, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
 
     plt.vlines(bor[0], bor[2], -bor[2], colors='white', linestyles='--')
     plt.vlines(bor[1], bor[2], -bor[2], colors='white', linestyles='--')
     plt.hlines(bor[2], bor[0], bor[1], colors='white', linestyles='--')
     plt.hlines(-bor[2], bor[0], bor[1], colors='white', linestyles='--')
 
+    plt.plot(np.array([0.01, bor[0]]), np.array([0, bor[2]]), c='white', linestyle='--')
+    plt.plot(np.array([0.01, bor[0]]), np.array([0, -bor[2]]), c='white', linestyle='--')
+
+    plt.hlines(0.5*width-0.01, 0, length, colors='white', linestyles='--')
+    plt.hlines(-0.5*width+0.01, 0, length, colors='white', linestyles='--')
+    plt.vlines(0.01, 0.5*width, -0.5*width, colors='white', linestyles='--')
+    plt.vlines(length-0.01, 0.5*width, -0.5*width, colors='white', linestyles='--')
+
+
 def kab_lines_front():
-    plt.hlines(z_chel, y_chel-0.2, y_chel+0.2, colors='white', linestyles='--')
-    plt.hlines(z_chel, -y_chel-0.2, -y_chel+0.2, colors='white', linestyles='--')
-    plt.hlines(z_chel-0.05, y_chel-0.2, y_chel+0.2, colors='white', linestyles='--')
-    plt.hlines(z_chel-0.05, -y_chel-0.2, -y_chel+0.2, colors='white', linestyles='--')
+    d = 0.13
+    plt.hlines(z_chel, y_chel-d, y_chel+d, colors='white', linestyles='--')
+    plt.hlines(z_chel, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
+    plt.hlines(z_chel-0.05, y_chel-d, y_chel+d, colors='white', linestyles='--')
+    plt.hlines(z_chel-0.05, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
+
+    plt.vlines(y_chel-d, z_chel, z_chel-0.05, colors='white', linestyles='--')
+    plt.vlines(y_chel+d, z_chel, z_chel-0.05, colors='white', linestyles='--')
+    plt.vlines(-y_chel-d, z_chel, z_chel-0.05, colors='white', linestyles='--')
+    plt.vlines(-y_chel+d, z_chel, z_chel-0.05, colors='white', linestyles='--')
+
+    d = 0.12
+    plt.hlines(z_chel+0.05, y_chel-d, y_chel+d, colors='white', linestyles='--')
+    plt.hlines(z_chel+0.05+2*d, y_chel-d, y_chel+d, colors='white', linestyles='--')
+    plt.hlines(z_chel+0.05, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
+    plt.hlines(z_chel+0.05+2*d, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
+
+    plt.vlines(y_chel-d, z_chel+0.05, z_chel+0.05+2*d, colors='white', linestyles='--')
+    plt.vlines(y_chel+d, z_chel+0.05, z_chel+0.05+2*d, colors='white', linestyles='--')
+    plt.vlines(-y_chel-d, z_chel+0.05, z_chel+0.05+2*d, colors='white', linestyles='--')
+    plt.vlines(-y_chel+d, z_chel+0.05, z_chel+0.05+2*d, colors='white', linestyles='--')
+
+    plt.hlines(floor+0.01, 0.5*width, -0.5*width, colors='white', linestyles='--')
+    plt.hlines(height+floor-0.01, 0.5*width, -0.5*width, colors='white', linestyles='--')
+    plt.vlines(0.5*width-0.01, height, height+floor, colors='white', linestyles='--')
+    plt.vlines(-0.5*width+0.01, height, height+floor, colors='white', linestyles='--')
 
 
 def ted_lines():
-    x_td, y_td = r_td, l_td
-    plt.hlines(dy_td - 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue', linestyles='--')
-    plt.hlines(dy_td + 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue', linestyles='--')
-    plt.vlines(x_td1_sr - x_td * 0.5, dy_td - 0.5 * y_td, dy_td + 0.5 * y_td, colors='blue', linestyles='--')
-    plt.vlines(x_td1_sr + x_td * 0.5, dy_td - 0.5 * y_td, dy_td + 0.5 * y_td, colors='blue', linestyles='--')
-    plt.hlines(-dy_td - 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue',
-               linestyles='--')
-    plt.hlines(-dy_td + 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue',
-               linestyles='--')
-    plt.vlines(x_td1_sr - x_td * 0.5, -dy_td - 0.5 * y_td, -dy_td + 0.5 * y_td, colors='blue', linestyles='--')
-    plt.vlines(x_td1_sr + x_td * 0.5, -dy_td - 0.5 * y_td, -dy_td + 0.5 * y_td, colors='blue', linestyles='--')
+    pass
+    # x_td, y_td = r_td, l_td
+    # plt.hlines(dy_td - 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue', linestyles='--')
+    # plt.hlines(dy_td + 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue', linestyles='--')
+    # plt.vlines(x_td1_sr - x_td * 0.5, dy_td - 0.5 * y_td, dy_td + 0.5 * y_td, colors='blue', linestyles='--')
+    # plt.vlines(x_td1_sr + x_td * 0.5, dy_td - 0.5 * y_td, dy_td + 0.5 * y_td, colors='blue', linestyles='--')
+    # plt.hlines(-dy_td - 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue',
+    #            linestyles='--')
+    # plt.hlines(-dy_td + 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue',
+    #            linestyles='--')
+    # plt.vlines(x_td1_sr - x_td * 0.5, -dy_td - 0.5 * y_td, -dy_td + 0.5 * y_td, colors='blue', linestyles='--')
+    # plt.vlines(x_td1_sr + x_td * 0.5, -dy_td - 0.5 * y_td, -dy_td + 0.5 * y_td, colors='blue', linestyles='--')
 
 
 def ted_lines_front():
@@ -416,6 +458,7 @@ def triang_do(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='
     plt.tricontourf(triangulation, scalar_, cmap=cmap)
     tcf = plt.tricontour(triangulation, scalar_, alpha=0.75, colors='black', linestyles='dotted', levels=lev)
     plt.clabel(tcf, fontsize=10)
+    plt.colorbar()
 
     plt.xlabel(x_lb)
     plt.ylabel(y_lb)
@@ -441,7 +484,7 @@ def visual_up_locomotive(ext_f):
         ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='white', linestyles='dotted', levels=5)
         plt.clabel(ct, fontsize=10)
         plt.imshow(znach, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95, norm=colors.LogNorm())
-        # plt.colorbar()
+        plt.colorbar()
 
         plt.xlabel(x_lb)
         plt.ylabel(y_lb)
@@ -469,6 +512,7 @@ def visual_up_locomotive(ext_f):
     mng = plt.get_current_fig_manager()
     mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+
 
 def visual_up_post():
     print('Расчёт поля от тяговых двигателей....')
@@ -551,6 +595,7 @@ def visual_front_locomotive(ext_f):
         ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
         plt.clabel(ct, fontsize=10)
         plt.imshow(znach, extent=[Ymin, Ymax, Zmax, Zmin],  cmap=cmap,  alpha=0.95, norm=colors.LogNorm())
+        plt.colorbar()
 
         plt.xlabel(x_lb)
         plt.ylabel(y_lb)
@@ -617,6 +662,7 @@ def visual_front_locomotive(ext_f):
           sep='\n')
 
 
+
 def visual_front_post():
 
     print('Расчёт поля от тяговых двигателей')
@@ -660,6 +706,7 @@ def visual_front_post():
         ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=lev)
         plt.clabel(ct, fontsize=10)
         plt.imshow(znach, extent=[Ymin, Ymax, Zmax, Zmin],  cmap=cmap,  alpha=0.95, norm=colors.LogNorm())
+        plt.colorbar()
 
         plt.xlabel(x_lb)
         plt.ylabel(y_lb)
@@ -700,8 +747,6 @@ def visual_front_post():
     print('График построен.')
 
 
-# TODO высота 2 метра и высота человека - ???
-
 ## РАСЧЁТ СТАТИСТИКИ ##
 
 S = (a * b / 3600) ** 1 / 2
@@ -717,6 +762,7 @@ print(f'Суммарный ток: {I} Ампер')
 print(f'Напряжение ТЭД: {U_ted} Вольт')
 print(f'Ток ТЭД: {I_ted} Ампер')
 print(f'Высота среза: {z_graph} метров')
+
 
 ## ПОСТРОЕНИЕ ГРАФИКА ##
 

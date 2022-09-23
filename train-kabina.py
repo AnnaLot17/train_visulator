@@ -571,7 +571,6 @@ def visual_front_locomotive(ext_f):
     summar = [[full_pass(x_el) for x_el in y_list] for y_list in ekran_]
     energy = [[x_el[0]*x_el[1] for x_el in y_list] for y_list in summar]
 
-
     plt.figure(5)
     name = 'Вид cпереди с экраном. Энергия.'
     plt.imshow(energy, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
@@ -610,10 +609,13 @@ def visual_front_locomotive(ext_f):
     name = 'Cпереди кабина переменное с экраном'
     plt.subplot(1, 3, 1)
     graph_do(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    kab_lines_front()
     plt.subplot(1, 3, 2)
     graph_do(electric, 'Электрическое', x_lb='Ось x, метры')
+    kab_lines_front()
     plt.subplot(1, 3, 3)
     graph_do(energy, 'Общее', x_lb='Ось x, метры',)
+    kab_lines_front()
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
     mng.window.state('zoomed')

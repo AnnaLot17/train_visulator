@@ -1,4 +1,4 @@
-from math import pi, log, exp
+from math import pi, log, exp, atan
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.tri as tri
@@ -161,7 +161,7 @@ koef_ekr_e_splosh = 1 / ke_metal
 # TODO уточнить высоту ВУ-СР шины
 
 # todo для проверки
-sh_test = [[(1, 1.4, z_vu),  (5, 0,0)]]
+sh_test = [[(1, 1.4, z_vu),  (5, 0, 0)]]
 
 # ВУ-СР
 sh_vu_cp = [
@@ -187,13 +187,13 @@ sh_cp_td = [
             [(x_cp1 - l_cp-2.5, y_cp, 1.1), (0, 0, -1.7-0.5)],
             ]
 
-vu = [[(x_vu1, x_vu1 - l_vu, y_vu1, y_vu1 + h_vu, z_vu, z_vu+w_vu)],
-      [(x_vu1, x_vu1 - l_vu, y_vu2, y_vu2 + h_vu, z_vu, z_vu+w_vu)],
-      [(x_vu2, x_vu2 + l_vu, y_vu1, y_vu1 + h_vu, z_vu, z_vu+w_vu)],
-      [(x_vu2, x_vu2 + l_vu, y_vu2, y_vu2 + h_vu, z_vu, z_vu+w_vu)]]
+vu = [[x_vu1, x_vu1 - l_vu, y_vu1, y_vu1 + h_vu, z_vu, z_vu+w_vu],
+      [x_vu1, x_vu1 - l_vu, y_vu2, y_vu2 + h_vu, z_vu, z_vu+w_vu],
+      [x_vu2, x_vu2 + l_vu, y_vu1, y_vu1 + h_vu, z_vu, z_vu+w_vu],
+      [x_vu2, x_vu2 + l_vu, y_vu2, y_vu2 + h_vu, z_vu, z_vu+w_vu]]
 
-cp = [[(x_cp1, x_cp1 - l_cp, y_cp - 0.5 * h_cp, y_cp + 0.5 * h_cp, z_cp, z_cp+w_cp), (3150, 1400, 1)],
-      [(x_cp2, x_cp2 + l_cp, y_cp - 0.5 * h_cp, y_cp + 0.5 * h_cp, z_cp, z_cp+w_cp), (3150, 1400, 1)]]
+cp = [[x_cp1, x_cp1 - l_cp, y_cp - 0.5 * h_cp, y_cp + 0.5 * h_cp, z_cp, z_cp+w_cp],
+      [x_cp2, x_cp2 + l_cp, y_cp - 0.5 * h_cp, y_cp + 0.5 * h_cp, z_cp, z_cp+w_cp]]
 
 
 # TODO сколько их?
@@ -210,11 +210,8 @@ cp = [[(x_cp1, x_cp1 - l_cp, y_cp - 0.5 * h_cp, y_cp + 0.5 * h_cp, z_cp, z_cp+w_
 #        ]
 
 
-
 def radius(st, ed):
     return ((st[0] - ed[0]) ** 2 + (st[1] - ed[1]) ** 2 + (st[2] - ed[2]) ** 2) ** 0.5
-
-minus = []  # TODO формируем точки кузова
 
 
 def shina(shinas, v1arr, v2arr, v3, I, U, type_='FRONT', ver_='PER'):
@@ -225,7 +222,6 @@ def shina(shinas, v1arr, v2arr, v3, I, U, type_='FRONT', ver_='PER'):
         if sh[1][0]:
             arr = np.linspace(sh[0][0], sh[0][0]+sh[1][0], dc)
             sh_p.extend([(x, sh[0][1], sh[0][2]) for x in arr])
-            print(sh_p)
         elif sh[1][1]:
             arr = np.linspace(sh[0][1], sh[0][1]+sh[1][1], dc)
             sh_p.extend([(sh[0][0], y, sh[0][2]) for y in arr])
@@ -234,7 +230,6 @@ def shina(shinas, v1arr, v2arr, v3, I, U, type_='FRONT', ver_='PER'):
             sh_p.extend([(sh[0][0], sh[0][1], z) for z in arr])
 
     sh_points = [(length+pp[0], -0.5*width+pp[1], floor+pp[2]) for pp in sh_p]
-    print(sh_points)
 
     def in_point(x_, y_, z_):
         r = 0
@@ -245,7 +240,7 @@ def shina(shinas, v1arr, v2arr, v3, I, U, type_='FRONT', ver_='PER'):
             return {f: [I * harm[f][0] * r / (2 * pi * len(sh_points)), U * harm[f][0] * r / len(sh_points)]
                     for f in harm.keys()}
         else:
-            return [I * r / (2 * pi * len(sh_points)), U * r / len(sh_points)]
+            return [[I * r / (2 * pi * len(sh_points)), U * r / len(sh_points)], (x_, y_, z_)]
 
     if type_ == 'FRONT':
         res = [in_point(v3, y, z) for z in v2arr for y in v1arr]
@@ -259,14 +254,21 @@ def shina(shinas, v1arr, v2arr, v3, I, U, type_='FRONT', ver_='PER'):
 
 # в одном пуле - несколько
 
-def oborud(element, v1arr, v2arr, v3, I, U, n, type_='FRONT', ver_='PER'):
-    ds = 8
 
+def oborud(element, v1arr, v2arr, v3, I, U, n, type_='FRONT', ver_='PER', ob='com'):
     if ob == 'com':
-        nodes_x = []
+        ds = 4
+        points = []
+        for el in element:
+            nodes_x = np.linspace(el[0], el[1], ds)
+            nodes_y = np.linspace(el[2], el[3], ds)
+            nodes_z = np.linspace(el[4], el[5], ds)
+            points.extend([[length+x_, -0.5*width+y_, floor+z_] for z_ in nodes_z for y_ in nodes_y for x_ in nodes_x])
     else:  # если это ТЭД
-        # todo ещё ТЭДы
-        nodes_x = [x_td1_sr + 0.5 * r_td * np.cos(ap) for ap in np.linspace(0, 2 * pi, ds)]
+        ds = 8
+        # todo ещё ТЭДы - в [x_td1_sr]
+        nodes_x = [dx + 0.5 * r_td * np.cos(ap) for dx in [x_td1_sr]
+                   for ap in np.linspace(0, 2 * pi, ds)]
         nodes_z = [z_td + 0.5 * r_td * np.sin(ap) for ap in np.linspace(0, 2 * pi, ds)]
         nodes_y = [td - td_p for td in [dy_td, -dy_td] for td_p in np.linspace(-0.5 * l_td, 0.5 * l_td, 4)]
         points = [[x_, y_, z_] for z_ in nodes_z for y_ in nodes_y for x_ in nodes_x]
@@ -283,77 +285,61 @@ def oborud(element, v1arr, v2arr, v3, I, U, n, type_='FRONT', ver_='PER'):
     # else:
     #     minus = [[x_, y_] for y_ in v2arr for x_ in v1arr]
 
-
+    l_ob = abs(element[0][1] - element[0][0])
 
     # TODO это постоянное а надо ещё и переменное
     def in_point(x_, y_, z_):
-        H_ob, E_ob = 0, 0
-        for p in points:
-            r = ((p[0] - x_) ** 2 + (p[1] - y_) ** 2 + (p[2] - z_) ** 2) ** 0.5
-            H_ob += I / (pi * l_ob) * atan(l_ob / 2 / r)
-            E_ob += U / r / len(points)
-
-        for m in minus:
-            r_m = ((m[0] - x_) ** 2 + (m[1] - y_) ** 2 + (floor - z_) ** 2) ** 0.5
-            if r_m != 0:
-                E_ob += U_g / r_m / len(minus)
-        return [[H_ob * n / len(points), E_ob], (x_, y_, z_)]
-
-    if type_ == 'UP':
-        return [in_point(x_, y_, z_graph) for y_ in y_arr for x_ in x_arr]
-    else:
-        return [in_point(x_chel, y_, z_) for z_ in y_arr for y_ in x_arr]
-
-
-
-
-
-    # TODO чтобы ещё и ТД правильно считал
-    obor_points = []  # TODO список точек xyz с указанием силы тока и напряжения
-
-    def in_point(x_, y_, z_):
         if ver_ == 'PER':
-            H_res = {f: x_*y_*z_*harm[f][0] for f in harm.keys()}
-            # H_res = {f: 0 for f in harm.keys()}
-            E_res = {f: x_*y_*z_*harm[f][1] for f in harm.keys()}
-            # E_res = {f: 0 for f in harm.keys()}
-            # for p in obor_points:
-            #     r = radius([x_, y_, z_], p[:3])
-            #     for f in harm.keys():
-            #         H_res[f] += p[4] * harm[f][0] * ...  # TODO
-            #         E_res[f] += p[5] * harm[f][1] / r /
-            # for m in minus:
-            #     r_m = radius([x_, y_, z_], m)
-            #     for f in harm.keys():
-            #         E_res += p[5] * harm[f][1]/ r_m /
+            H_ob, E_ob = 0, 0
+            for p in points:
+                r = ((p[0] - x_) ** 2 + (p[1] - y_) ** 2 + (p[2] - z_) ** 2) ** 0.5
+                H_ob += I / (pi * l_ob) * atan(l_ob / 2 / r)
+                E_ob += U / r / len(points)
+
+            for m in minus:
+                r_m = ((m[0] - x_) ** 2 + (m[1] - y_) ** 2 + (floor - z_) ** 2) ** 0.5
+                if r_m != 0:
+                    E_ob += U / r_m / len(minus)
+            return [{f: [harm[f] * H_ob * n / len(points), harm[f] * E_ob] for f in harm.keys()}, (x_, y_, z_)]
         else:
-            H_res, E_res = x_*y_*z_, x_*y_*z_
-            # H_res, E_res = 0, 0
-            # for p in obor_points:
-            #     r = radius([x_, y_, z_], p[:3])
-            #     H_res += p[4] * ...  # TODO
-            #     E_res += p[5] / r
-            # for m in minus:
-            #     r_m = radius([x_, y_, z_], m)
-            #     E_res += p[5] / r_m
+            H_ob, E_ob = 0, 0
+            for p in points:
+                r = ((p[0] - x_) ** 2 + (p[1] - y_) ** 2 + (p[2] - z_) ** 2) ** 0.5
+                H_ob += I / (pi * l_ob) * atan(l_ob / 2 / r)
+                E_ob += U / r / len(points)
+
+            for m in minus:
+                r_m = ((m[0] - x_) ** 2 + (m[1] - y_) ** 2 + (floor - z_) ** 2) ** 0.5
+                if r_m != 0:
+                    E_ob += U / r_m / len(minus)
+            return [[H_ob * n / len(points), E_ob], (x_, y_, z_)]
 
     if type_ == 'FRONT':
-        res = [in_point(v3, y, z) for z in v2arr for y in v1arr]
+        return [in_point(v3, y, z) for z in v2arr for y in v1arr]
     else:
-        res = [in_point(x, y, v3) for y in v2arr for x in v1arr]
-
-    return res
+        return [in_point(x, y, v3) for y in v2arr for x in v1arr]
 
 
-def field_sum(arg):
+def field_sum_per(arg):
+    # TODO координату сохраняем
     def summ(f, i):
         sum_h, sum_e = 0, 0
         for el in arg:
-            sum_h += el[i][f][0]
-            sum_e += el[i][f][1]
+            sum_h += el[i][0][f][0]
+            sum_e += el[i][0][f][1]
         return [sum_h, sum_e]
+    return [[{frq: summ(frq, i) for frq in harm.keys()}, arg[0][i][1]] for i in range(0, len(arg[0]))]
 
-    return [{frq: summ(frq, i) for frq in harm.keys()} for i in range(0, len(arg[0]))]
+
+def field_sum_post(arg):
+    # TODO координату сохраняем
+    def summ(i):
+        sum_h, sum_e = 0, 0
+        for el in arg:
+            sum_h += el[i][0][0]
+            sum_e += el[i][0][1]
+        return [sum_h, sum_e]
+    return [[summ(i), arg[0][i][1]] for i in range(0, len(arg[0]))]
 
 
 def full_energy(en):
@@ -383,16 +369,16 @@ def lines_oborud(oborud_, color, type_='FRONT'):
     v_lines = []
     if type_ == 'FRONT':
         for ob in oborud_:
-            h_lines.append([ob[0][4], ob[0][2], ob[0][3]])
-            h_lines.append([ob[0][5], ob[0][2], ob[0][3]])
-            v_lines.append([ob[0][2], ob[0][4], ob[0][5]])
-            v_lines.append([ob[0][3], ob[0][4], ob[0][5]])
+            h_lines.append([ob[4], ob[2], ob[3]])
+            h_lines.append([ob[5], ob[2], ob[3]])
+            v_lines.append([ob[2], ob[4], ob[5]])
+            v_lines.append([ob[3], ob[4], ob[5]])
     else:
         for ob in oborud_:
-            h_lines.append([ob[0][2], ob[0][0], ob[0][1]])
-            h_lines.append([ob[0][3], ob[0][0], ob[0][1]])
-            v_lines.append([ob[0][0], ob[0][2], ob[0][3]])
-            v_lines.append([ob[0][1], ob[0][2], ob[0][3]])
+            h_lines.append([ob[2], ob[0], ob[1]])
+            h_lines.append([ob[3], ob[0], ob[1]])
+            v_lines.append([ob[0], ob[2], ob[3]])
+            v_lines.append([ob[1], ob[2], ob[3]])
 
     do_draw(h_lines, v_lines, color, type_)
 
@@ -414,8 +400,6 @@ def lines_shina(shina_, color, type_='FRONT'):
                 v_lines.append([sh[0][0], sh[0][1], sh[0][1] + sh[1][1]])
 
     do_draw(h_lines, v_lines, color, type_)
-
-
 
 
 # TODO достаём внешнее поле из первого модуля
@@ -509,33 +493,25 @@ def visual_up_post():
 
     def figure_draw(znach, name_):
         triang_draw(tr, znach, name_)
-        lines_shina(sh_vu_cp, 'turquoise', type_='UP')
-        lines_shina(sh_cp_td, 'c', type_='UP')
+        # lines_shina(sh_vu_cp, 'turquoise', type_='UP')
+        # lines_shina(sh_cp_td, 'c', type_='UP')
         lines_oborud(vu, 'darkblue', type_='UP')
-        lines_oborud(cp, 'magenta', type_='UP')
+        # lines_oborud(cp, 'magenta', type_='UP')
 
-    # field = shina(sh_test, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP', ver_='POST')
+    tst = shina(sh_test, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP', ver_='POST')
 
     # vu_cp = shina(sh_vu_cp, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP', ver_='POST')
     # cp_td = shina(sh_cp_td, x_ln, y_ln, z_graph, I_cp_td, U_cp_td, type_='UP', ver_='POST')
+   # vu_f = oborud(vu, x_ln, y_ln, z_graph, I_vu, U_vu, n_vu, type_='UP', ver_='POST')
+    # print(vu_f[0])
+    #
+    # field = field_sum_post([tst, vu_f])
+    # print(field[0])
 
-    vu_f = oborud(vu, x_ln,y_ln, z_graph, I_vu, U_vu, n_vu, type_='UP', ver_='POST')
-
-    # field = field_sum([cp_td, vu_cp])
-
-
-    summar = field_sum([])
-    magnetic = [el[0] for el in summar]
-    electric = [el[1] for el in summar]
-    energy = [el[0]*el[1] for el in summar]
-
-
-    # sh_f_post = shina(sh_post, x_arr, y_arr, z, type_='UP', ver_='POST')
-    # ob_f_post = oborud(ob_post, x_ln, y_ln, z, type_='UP', ver_='POST')
-    # magnetic = [sh_f_post[i][0]+ob_f_post[i][0] for i in range(0, len(x_arr)*len(y_arr)]
-    # electric = [sh_f_post[i][1]+ob_f_post[i][1] for i in range(0, len(x_arr)*len(y_arr)]
-    # post_all = [magnetic[i]*electric[i] for i in len(magnetic)]
-
+    summar = tst
+    magnetic = [el[0][0] for el in summar]
+    electric = [el[0][1] for el in summar]
+    energy = [el[0][0]*el[0][1] for el in summar]
 
     plt.figure(1)
     plt.subplot(2, 1, 1)
@@ -547,8 +523,9 @@ def visual_up_post():
     # mng = plot.get_current_fig_manager()
     # mng.window.state('zoomed')
     name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_постоянный.png"
-    # plt.savefig(name)
-    plt.show()
+    plt.savefig(name)
+    # plt.show()
+
 
 def visual_front():
     #  вид спереди 3-8:
@@ -574,7 +551,8 @@ def visual_front():
         # TODO пепеменный
         G = [z * y * SZ[no] for z in z_ln for y in y_ln]
         # TODO пстоянный
-        H = [z * y * log(SZ[no]) for z in z_ln for y in y_ln]
+        field_post = shina(sh_test, y_ln, z_ln, SZ[no], I_vu_cp, U_vu_cp, ver_='POST')
+        energy_post = [e[0][0]*e[0][1] for e in field_post]
         # TODO это тоже пепемемный
         kab = [{fr: z * y * SZ[no] * harm[fr][0] for fr in harm.keys()} for z in z_ln for y in y_ln]
 
@@ -585,7 +563,7 @@ def visual_front():
         triang_draw(tr, G, 'Переменный', y_lb='Ось z, метры')
 
         plt.subplot(1, 2, 2)
-        triang_draw(tr, H, 'Постоянный', y_lb='Ось z, метры')
+        triang_draw(tr, energy_post, 'Постоянный', y_lb='Ось z, метры')
         lines_shina(sh_vu_cp, 'turquoise')
         lines_shina(sh_cp_td, 'blue')
         lines_oborud(vu, 'c')
@@ -599,23 +577,23 @@ def visual_front():
         name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{no}_м.png"
         plt.savefig(name)
 
-        plt.figure(i + p_n)
-        i += 1
-        name = 'Гармоники вид спереди'
-        j = 0
-        # chel_harm_e = []
-        # TODO нужна ли какая-то гистограмма? Если нужна - то на какую точку?
-        for fr in harm.keys():
-            j += 1
-            plt.subplot(3, 3, j)
-            data = [dt[fr] for dt in kab]
-            triang_draw(tr, data, '', y_lb=str(fr))
-        # plt.subplot(3, 3, 9)
-        # plt.bar(range(0, len(harm.keys())), chel_harm_e)
-        plt.suptitle(name)
-
-        name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_гарм_{no}_м.png"
-        plt.savefig(name)
+        # plt.figure(i + p_n)
+        # i += 1
+        # name = 'Гармоники вид спереди'
+        # j = 0
+        # # chel_harm_e = []
+        # # TODO нужна ли какая-то гистограмма? Если нужна - то на какую точку?
+        # for fr in harm.keys():
+        #     j += 1
+        #     plt.subplot(3, 3, j)
+        #     data = [dt[fr] for dt in kab]
+        #     triang_draw(tr, data, '', y_lb=str(fr))
+        # # plt.subplot(3, 3, 9)
+        # # plt.bar(range(0, len(harm.keys())), chel_harm_e)
+        # plt.suptitle(name)
+        #
+        # name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_гарм_{no}_м.png"
+        # plt.savefig(name)
 
 
 ## РАСЧЁТ СТАТИСТИКИ ##
@@ -637,7 +615,7 @@ p = ti / 24  # статистическая вероятность воздей�
 
 SZ = {4: 1.8}
 
-z_graph = z_vu
+z_graph = floor
 
 # TODO одновременно на одном СВЕРХУ и на одном СПЕРЕДИ смотрим:
 #  1. шина
@@ -646,7 +624,7 @@ z_graph = z_vu
 
 # visual_up_per()
 visual_up_post()
-# visual_front()
+visual_front()
 
 # Уже сделано:
 # - рыбы графиков вид сверху
@@ -660,8 +638,6 @@ visual_up_post()
 
 # TODO переменные шины и оборудование
 
-# TODO 2. набираем нужное количество графиков
-# TODO 3. рыба на вывод поля: все массивы как надо, но значения - рыбо
 # TODO 4. по очереди добавляем формулы и проверяем
 # TODO      4.1 постоянное магнитное шины
 # TODO      2. постоянное магнитное оборудование

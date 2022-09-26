@@ -237,8 +237,8 @@ def shina(shinas, v1arr, v2arr, v3, I, U, type_='FRONT', ver_='PER'):
             r += 1 / radius((x_, y_, z_), point)
 
         if ver_ == 'PER':
-            return {f: [I * harm[f][0] * r / (2 * pi * len(sh_points)), U * harm[f][0] * r / len(sh_points)]
-                    for f in harm.keys()}
+            return [{f: [I * harm[f][0] * r / (2 * pi * len(sh_points)), U * harm[f][0] * r / len(sh_points)]
+                    for f in harm.keys()}, (x_, y_, z_)]
         else:
             return [[I * r / (2 * pi * len(sh_points)), U * r / len(sh_points)], (x_, y_, z_)]
 
@@ -320,7 +320,7 @@ def oborud(element, v1arr, v2arr, v3, I, U, n, type_='FRONT', ver_='PER', ob='co
         return [in_point(x, y, v3) for y in v2arr for x in v1arr]
 
 
-def field_sum_per(arg):
+def field_sum_per(*arg):
     # TODO координату сохраняем
     def summ(f, i):
         sum_h, sum_e = 0, 0
@@ -331,7 +331,7 @@ def field_sum_per(arg):
     return [[{frq: summ(frq, i) for frq in harm.keys()}, arg[0][i][1]] for i in range(0, len(arg[0]))]
 
 
-def field_sum_post(arg):
+def field_sum_post(*arg):
     # TODO координату сохраняем
     def summ(i):
         sum_h, sum_e = 0, 0
@@ -443,25 +443,39 @@ def visual_up_per():
 
     def figure_draw(znach, name_):
         triang_draw(tr, znach, name_)
-        # TODO шины переменные только
+        # TODO шины переменные
         # lines_shina(sh_vu_cp, 'turquoise', type_='UP')
         # lines_shina(sh_cp_td, 'c', type_='UP')
         # lines_oborud(vu, 'darkblue', type_='UP')
         # lines_oborud(cp, 'magenta', type_='UP')
 
-    # field = shina(sh_vu_cp, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP')
-    # # TODO ещё одну
-    #
-    # summar = [full_energy(el) for el in field]
-    # magnetic = [el[0] for el in summar]
-    # electric = [el[1] for el in summar]
-    # energy = [el[0]*el[1] for el in summar]
+    print('Расчёт поля переменного тока.....')
+    print('Расчёт поля шин...')
+    # TODO переменные шины
+    vu_cp = shina(sh_vu_cp, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP')
+    cp_td = shina(sh_cp_td, x_ln, y_ln, z_graph, I_cp_td, U_cp_td, type_='UP')
+    print('Расчёт поля оборудования...')
+    # TODO переменные оборудования
+    vu_f = oborud(vu, x_ln, y_ln, z_graph, I_vu, U_vu, n_vu, ver_='POST', type_='UP')
+    cp_f = oborud(cp, x_ln, y_ln, z_graph, I_cp, U_cp, n_cp, ver_='POST', type_='UP')
 
-    plt.figure(1)
-    plt.subplot(2, 1, 1)
-    figure_draw(magnetic, 'Переменный магнетизм')
-    plt.subplot(2, 1, 2)
-    figure_draw(electric, 'Переменный электричество')
+    field = field_sum_per(vu_cp, cp_td, vu_f, cp_f)
+
+    summar = [full_energy(el) for el in field]
+    magnetic = [el[0] for el in summar]
+    electric = [el[1] for el in summar]
+    energy = [el[0]*el[1] for el in summar]
+
+    global gph_num
+    gph_num += 1
+    plt.figure(gph_num)
+    plt.subplot(3, 1, 1)
+    figure_draw(magnetic, 'Магнетизм')
+    plt.subplot(3, 1, 2)
+    figure_draw(electric, 'Электричество')
+    plt.subplot(3, 1, 3)
+    figure_draw(energy, 'Электричество')
+    plt.suptitle('Переменный вид сверху')
 
     # mng = plot.get_current_fig_manager()
     # mng.window.state('zoomed')
@@ -479,7 +493,6 @@ def visual_up_per():
 
 
 def visual_up_post():
-    print('График строится..................')
 
     Xmin = 0
     Xmax = all_length
@@ -493,31 +506,33 @@ def visual_up_post():
 
     def figure_draw(znach, name_):
         triang_draw(tr, znach, name_)
-        # lines_shina(sh_vu_cp, 'turquoise', type_='UP')
-        # lines_shina(sh_cp_td, 'c', type_='UP')
+        lines_shina(sh_vu_cp, 'turquoise', type_='UP')
+        lines_shina(sh_cp_td, 'c', type_='UP')
         lines_oborud(vu, 'darkblue', type_='UP')
-        # lines_oborud(cp, 'magenta', type_='UP')
+        lines_oborud(cp, 'magenta', type_='UP')
 
-    tst = shina(sh_test, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP', ver_='POST')
+    print('Расчёт поля постоянного тока.....')
+    print('Расчёт поля шин...')
+    vu_cp = shina(sh_vu_cp, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP', ver_='POST')
+    cp_td = shina(sh_cp_td, x_ln, y_ln, z_graph, I_cp_td, U_cp_td, type_='UP', ver_='POST')
+    print('Расчёт поля оборудования...')
+    vu_f = oborud(vu, x_ln, y_ln, z_graph, I_vu, U_vu, n_vu, type_='UP', ver_='POST')
+    cp_f = oborud(cp, x_ln, y_ln, z_graph, I_cp, U_cp, n_cp, type_='UP', ver_='POST')
 
-    # vu_cp = shina(sh_vu_cp, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP', ver_='POST')
-    # cp_td = shina(sh_cp_td, x_ln, y_ln, z_graph, I_cp_td, U_cp_td, type_='UP', ver_='POST')
-   # vu_f = oborud(vu, x_ln, y_ln, z_graph, I_vu, U_vu, n_vu, type_='UP', ver_='POST')
-    # print(vu_f[0])
-    #
-    # field = field_sum_post([tst, vu_f])
-    # print(field[0])
-
-    summar = tst
+    summar = field_sum_post(vu_cp, cp_td, vu_f, cp_f)
     magnetic = [el[0][0] for el in summar]
     electric = [el[0][1] for el in summar]
     energy = [el[0][0]*el[0][1] for el in summar]
 
-    plt.figure(1)
-    plt.subplot(2, 1, 1)
+    global gph_num
+    gph_num += 1
+    plt.figure(gph_num)
+    plt.subplot(3, 1, 1)
     figure_draw(magnetic, 'Магнетизм')
-    plt.subplot(2, 1, 2)
+    plt.subplot(3, 1, 2)
     figure_draw(electric, 'Электричество')
+    plt.subplot(3, 1, 3)
+    figure_draw(energy, 'Энергия')
     plt.suptitle('Постоянный, вид сверху')
 
     # mng = plot.get_current_fig_manager()
@@ -544,23 +559,35 @@ def visual_front():
 
     tr = make_triang(y_ln, z_ln)
 
-    i = 0  # потом другое число
-    p_n = 2
+    global gph_num
 
     for no in SZ.keys():
+        print(f"Построение среза {SZ[no]} м")
+        print('Расчёт поля переменного тока...')
         # TODO пепеменный
-        G = [z * y * SZ[no] for z in z_ln for y in y_ln]
-        # TODO пстоянный
-        field_post = shina(sh_test, y_ln, z_ln, SZ[no], I_vu_cp, U_vu_cp, ver_='POST')
-        energy_post = [e[0][0]*e[0][1] for e in field_post]
-        # TODO это тоже пепемемный
-        kab = [{fr: z * y * SZ[no] * harm[fr][0] for fr in harm.keys()} for z in z_ln for y in y_ln]
+        kab = [[{fr: [z * y * SZ[no] * harm[fr][0], 1] for fr in harm.keys()}, (SZ[no], y, z)]
+               for z in z_ln for y in y_ln]
 
-        plt.figure(i + p_n)
-        i += 1
+        # всё ещё рыба
+        field_per = [full_energy(el[0]) for el in kab]
+        energy_per = [el[0] * el[1] for el in field_per]
+
+        print('Расчёт поля постоянного тока...')
+        print('Расчёт поля шин...')
+        vu_cp = shina(sh_vu_cp, y_ln, z_ln, SZ[no], I_vu_cp, U_vu_cp, ver_='POST')
+        cp_td = shina(sh_cp_td, y_ln, z_ln, SZ[no], I_cp_td, U_cp_td, ver_='POST')
+        print('Расчёт поля оборудования...')
+        vu_f = oborud(vu, y_ln, z_ln, SZ[no], I_vu, U_vu, n_vu, ver_='POST')
+        cp_f = oborud(cp, y_ln, z_ln, SZ[no], I_cp, U_cp, n_cp, ver_='POST')
+
+        field_post = field_sum_post(vu_cp, cp_td, vu_f, cp_f)
+        energy_post = [e[0][0]*e[0][1] for e in field_post]
+
+        gph_num += 1
+        plt.figure(gph_num)
         name = f'Энергия. Вид спереди. Срез {SZ[no]} метров.'
         plt.subplot(1, 2, 1)
-        triang_draw(tr, G, 'Переменный', y_lb='Ось z, метры')
+        triang_draw(tr, energy_per, 'Переменный', y_lb='Ось z, метры')
 
         plt.subplot(1, 2, 2)
         triang_draw(tr, energy_post, 'Постоянный', y_lb='Ось z, метры')
@@ -577,23 +604,23 @@ def visual_front():
         name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{no}_м.png"
         plt.savefig(name)
 
-        # plt.figure(i + p_n)
-        # i += 1
-        # name = 'Гармоники вид спереди'
-        # j = 0
-        # # chel_harm_e = []
-        # # TODO нужна ли какая-то гистограмма? Если нужна - то на какую точку?
-        # for fr in harm.keys():
-        #     j += 1
-        #     plt.subplot(3, 3, j)
-        #     data = [dt[fr] for dt in kab]
-        #     triang_draw(tr, data, '', y_lb=str(fr))
-        # # plt.subplot(3, 3, 9)
-        # # plt.bar(range(0, len(harm.keys())), chel_harm_e)
-        # plt.suptitle(name)
-        #
-        # name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_гарм_{no}_м.png"
-        # plt.savefig(name)
+        gph_num += 1
+        plt.figure(gph_num)
+        name = 'Гармоники вид спереди'
+        j = 0
+        # chel_harm_e = []
+        # TODO нужна ли какая-то гистограмма? Если нужна - то на какую точку?
+        for fr in harm.keys():
+            j += 1
+            plt.subplot(3, 3, j)
+            data = [dt[0][fr] for dt in kab]
+            triang_draw(tr, data, '', y_lb=str(fr))
+        # plt.subplot(3, 3, 9)
+        # plt.bar(range(0, len(harm.keys())), chel_harm_e)
+        plt.suptitle(name)
+
+        name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_гарм_{no}_м.png"
+        plt.savefig(name)
 
 
 ## РАСЧЁТ СТАТИСТИКИ ##
@@ -603,6 +630,7 @@ p = ti / 24  # статистическая вероятность воздей�
 
 
 ## ПОСТРОЕНИЕ ГРАФИКА ##
+
 
 # формат
 # номер среза: расстояние в метрах от стенки, разделяющей кабину и машинное отделение
@@ -622,9 +650,12 @@ z_graph = floor
 #  2. оборудование
 #  после того как сработало на постоянном, проверяем переменные и гармоники
 
-# visual_up_per()
-visual_up_post()
-visual_front()
+gph_num = 0
+print('Вид сверху.')
+visual_up_per()
+# visual_up_post()
+print('Вид спереди')
+# visual_front()
 
 # Уже сделано:
 # - рыбы графиков вид сверху

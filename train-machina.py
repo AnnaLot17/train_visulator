@@ -105,6 +105,14 @@ U_vu_cp = 1400
 I_cp_td = 880
 U_cp_td = 950
 
+I_vu = 1850
+U_vu = 1500
+n_vu = 7
+
+I_cp = 3150
+U_cp = 1400
+n_cp = 1
+
 # РАЗМЕРЫ И ДАННЫЕ ЭКРАНА
 
 b_v = 2.6  # ширина экрана камеры, м
@@ -149,39 +157,40 @@ koef_ekr_e_splosh = 1 / ke_metal
 
 # todo итого: нужно ли ЗДЕСЬ напряжение и ток или в другом месте?
 # формат: [(координаты начала), (смещение конца относительно начала), (ток, напряжение)]
+
 # TODO уточнить высоту ВУ-СР шины
+
+# todo для проверки
+sh_test = [[(1, 1.4, z_vu),  (5, 0,0)]]
+
 # ВУ-СР
+sh_vu_cp = [
+            [(x_vu1, y_vu1 + 0.2, z_vu), (1, 0, 0)],
+            [(x_vu1, y_vu2 + 0.2, z_vu), (1, 0, 0)],
+            [(x_vu1 + 1, y_vu1 + 0.2, z_vu), (0, 1.4, 0)],
+            [(x_vu1+1, y_vu1 + 0.83, z_vu), (-0.6, 0, 0)],
 
-sh_vu_cp = [[(1, 1.4, z_vu),(5, 0,0)]]
-
-# sh_vu_cp = [
-#                 [(x_vu1, y_vu1 + 0.2, z_vu), (1, 0, 0)],
-#                 [(x_vu1, y_vu2 + 0.2, z_vu), (1, 0, 0)],
-#                 [(x_vu1 + 1, y_vu1 + 0.2, z_vu), (0, 1.4, 0)],
-#                 [(x_vu1+1, y_vu1 + 0.83, z_vu), (-0.6, 0, 0)],
-#
-#                 [(x_vu2, y_vu1 + 0.2, z_vu), (-1, 0, 0)],
-#                 [(x_vu2, y_vu2 + 0.2, z_vu), (-1, 0, 0)],
-#                 [(x_vu2 - 1, y_vu1 + 0.2, z_vu), (0, 1.4, 0)],
-#                 [(x_vu2-1, y_vu1 + 0.83, z_vu), (0.6, 0, 0)]]
+            [(x_vu2, y_vu1 + 0.2, z_vu), (-1, 0, 0)],
+            [(x_vu2, y_vu2 + 0.2, z_vu), (-1, 0, 0)],
+            [(x_vu2 - 1, y_vu1 + 0.2, z_vu), (0, 1.4, 0)],
+            [(x_vu2-1, y_vu1 + 0.83, z_vu), (0.6, 0, 0)]]
 
 # СР-ТД
 sh_cp_td = [
-                [(x_cp2 + l_cp, y_cp, 0), (0, 0, 1.9), (880, 950)],
-                [(x_cp2 + l_cp, y_cp, 1.9), (0, 0, -0.8), (880, 950)],
-                [(x_cp2 + l_cp, y_cp, 1.1), (2.5, 0, 0), (880, 950)],
-                [(x_cp2 + l_cp+2.5, y_cp, 1.1), (0, 0, -1.7-0.5), (880, 950)],
-                [(x_cp1 - l_cp, y_cp, 0), (0, 0, 1.9), (880, 950)],
-                [(x_cp1 - l_cp, y_cp, 1.9), (0, 0, -0.8), (880, 950)],
-                [(x_cp1 - l_cp, y_cp, 1.1), (-2.5, 0, 0), (880, 950)],
-                [(x_cp1 - l_cp-2.5, y_cp, 1.1), (0, 0, -1.7-0.5), (880, 950)],
-                ]
+            [(x_cp2 + l_cp, y_cp, 0), (0, 0, 1.9)],
+            [(x_cp2 + l_cp, y_cp, 1.9), (0, 0, -0.8)],
+            [(x_cp2 + l_cp, y_cp, 1.1), (2.5, 0, 0)],
+            [(x_cp2 + l_cp+2.5, y_cp, 1.1), (0, 0, -1.7-0.5)],
+            [(x_cp1 - l_cp, y_cp, 0), (0, 0, 1.9)],
+            [(x_cp1 - l_cp, y_cp, 1.9), (0, 0, -0.8)],
+            [(x_cp1 - l_cp, y_cp, 1.1), (-2.5, 0, 0)],
+            [(x_cp1 - l_cp-2.5, y_cp, 1.1), (0, 0, -1.7-0.5)],
+            ]
 
-
-vu = [[(x_vu1, x_vu1 - l_vu, y_vu1, y_vu1 + h_vu, z_vu, z_vu+w_vu), (1850, 1500, 7)],
-      [(x_vu1, x_vu1 - l_vu, y_vu2, y_vu2 + h_vu, z_vu, z_vu+w_vu), (1850, 1500, 7)],
-      [(x_vu2, x_vu2 + l_vu, y_vu1, y_vu1 + h_vu, z_vu, z_vu+w_vu), (1850, 1500, 7)],
-      [(x_vu2, x_vu2 + l_vu, y_vu2, y_vu2 + h_vu, z_vu, z_vu+w_vu), (1850, 1500, 7)]]
+vu = [[(x_vu1, x_vu1 - l_vu, y_vu1, y_vu1 + h_vu, z_vu, z_vu+w_vu)],
+      [(x_vu1, x_vu1 - l_vu, y_vu2, y_vu2 + h_vu, z_vu, z_vu+w_vu)],
+      [(x_vu2, x_vu2 + l_vu, y_vu1, y_vu1 + h_vu, z_vu, z_vu+w_vu)],
+      [(x_vu2, x_vu2 + l_vu, y_vu2, y_vu2 + h_vu, z_vu, z_vu+w_vu)]]
 
 cp = [[(x_cp1, x_cp1 - l_cp, y_cp - 0.5 * h_cp, y_cp + 0.5 * h_cp, z_cp, z_cp+w_cp), (3150, 1400, 1)],
       [(x_cp2, x_cp2 + l_cp, y_cp - 0.5 * h_cp, y_cp + 0.5 * h_cp, z_cp, z_cp+w_cp), (3150, 1400, 1)]]
@@ -199,7 +208,6 @@ cp = [[(x_cp1, x_cp1 - l_cp, y_cp - 0.5 * h_cp, y_cp + 0.5 * h_cp, z_cp, z_cp+w_
 #        [x_td2_sr - l_td * 0.5, x_td2_sr + l_td * 0.5,
 #         0.5 * (width + h_td), 0.5 * (width - h_td), 1 - z_td * 0.5, 1 + z_td * 0.5]
 #        ]
-# 880, 1950, 5
 
 
 
@@ -210,13 +218,14 @@ minus = []  # TODO формируем точки кузова
 
 
 def shina(shinas, v1arr, v2arr, v3, I, U, type_='FRONT', ver_='PER'):
-    dc = 8
+    dc = 10
 
     sh_p = []
     for sh in shinas:
         if sh[1][0]:
             arr = np.linspace(sh[0][0], sh[0][0]+sh[1][0], dc)
             sh_p.extend([(x, sh[0][1], sh[0][2]) for x in arr])
+            print(sh_p)
         elif sh[1][1]:
             arr = np.linspace(sh[0][1], sh[0][1]+sh[1][1], dc)
             sh_p.extend([(sh[0][0], y, sh[0][2]) for y in arr])
@@ -225,11 +234,13 @@ def shina(shinas, v1arr, v2arr, v3, I, U, type_='FRONT', ver_='PER'):
             sh_p.extend([(sh[0][0], sh[0][1], z) for z in arr])
 
     sh_points = [(length+pp[0], -0.5*width+pp[1], floor+pp[2]) for pp in sh_p]
+    print(sh_points)
 
     def in_point(x_, y_, z_):
         r = 0
         for point in sh_points:
             r += 1 / radius((x_, y_, z_), point)
+
         if ver_ == 'PER':
             return {f: [I * harm[f][0] * r / (2 * pi * len(sh_points)), U * harm[f][0] * r / len(sh_points)]
                     for f in harm.keys()}
@@ -243,12 +254,62 @@ def shina(shinas, v1arr, v2arr, v3, I, U, type_='FRONT', ver_='PER'):
 
     return res
 
+# имеется ТЭД, СУ, ВУ, ГК, и проч.
+# посчитать электричество а потом туда мгнетизм
 
-def oborud(element, v1arr, v2arr, v3, type_='FRONT', ver_='PER'):
+# в одном пуле - несколько
+
+def oborud(element, v1arr, v2arr, v3, I, U, n, type_='FRONT', ver_='PER'):
+    ds = 8
+
+    if ob == 'com':
+        nodes_x = []
+    else:  # если это ТЭД
+        # todo ещё ТЭДы
+        nodes_x = [x_td1_sr + 0.5 * r_td * np.cos(ap) for ap in np.linspace(0, 2 * pi, ds)]
+        nodes_z = [z_td + 0.5 * r_td * np.sin(ap) for ap in np.linspace(0, 2 * pi, ds)]
+        nodes_y = [td - td_p for td in [dy_td, -dy_td] for td_p in np.linspace(-0.5 * l_td, 0.5 * l_td, 4)]
+        points = [[x_, y_, z_] for z_ in nodes_z for y_ in nodes_y for x_ in nodes_x]
+
+    # разбиваем кабину на узлы
+    x_cab = np.linspace(length, all_length, 40)
+    y_cab = np.linspace(-0.5 * width, 0.5 * width, 40)
+    minus = [[x_, y_] for y_ in y_cab for x_ in x_cab]
+
+    # if type_ == 'FRONT':
+    #     x_cab = np.linspace(length, all_length, 40)
+    #     y_cab = np.linspace(-0.5 * width, 0.5 * width, 40)
+    #     minus = [[x_, y_] for y_ in y_cab for x_ in x_cab]
+    # else:
+    #     minus = [[x_, y_] for y_ in v2arr for x_ in v1arr]
+
+
+
+    # TODO это постоянное а надо ещё и переменное
+    def in_point(x_, y_, z_):
+        H_ob, E_ob = 0, 0
+        for p in points:
+            r = ((p[0] - x_) ** 2 + (p[1] - y_) ** 2 + (p[2] - z_) ** 2) ** 0.5
+            H_ob += I / (pi * l_ob) * atan(l_ob / 2 / r)
+            E_ob += U / r / len(points)
+
+        for m in minus:
+            r_m = ((m[0] - x_) ** 2 + (m[1] - y_) ** 2 + (floor - z_) ** 2) ** 0.5
+            if r_m != 0:
+                E_ob += U_g / r_m / len(minus)
+        return [[H_ob * n / len(points), E_ob], (x_, y_, z_)]
+
+    if type_ == 'UP':
+        return [in_point(x_, y_, z_graph) for y_ in y_arr for x_ in x_arr]
+    else:
+        return [in_point(x_chel, y_, z_) for z_ in y_arr for y_ in x_arr]
+
+
+
+
+
     # TODO чтобы ещё и ТД правильно считал
     obor_points = []  # TODO список точек xyz с указанием силы тока и напряжения
-    I = element[3]
-    U = element[4]
 
     def in_point(x_, y_, z_):
         if ver_ == 'PER':
@@ -453,16 +514,17 @@ def visual_up_post():
         lines_oborud(vu, 'darkblue', type_='UP')
         lines_oborud(cp, 'magenta', type_='UP')
 
-    vu_cp = shina(sh_vu_cp, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP')
-    cp_td = shina(sh_cp_td, x_ln, y_ln, z_graph, I_cp_td, U_cp_td, type_='UP')
-    # TODO ещё одну
+    # field = shina(sh_test, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP', ver_='POST')
 
-    print(vu_cp[0])
+    # vu_cp = shina(sh_vu_cp, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP', ver_='POST')
+    # cp_td = shina(sh_cp_td, x_ln, y_ln, z_graph, I_cp_td, U_cp_td, type_='UP', ver_='POST')
 
-    # TODO суммирование полей разных
-    field = field_sum([cp_td, vu_cp])
+    vu_f = oborud(vu, x_ln,y_ln, z_graph, I_vu, U_vu, n_vu, type_='UP', ver_='POST')
 
-    summar = [full_energy(el) for el in field]
+    # field = field_sum([cp_td, vu_cp])
+
+
+    summar = field_sum([])
     magnetic = [el[0] for el in summar]
     electric = [el[1] for el in summar]
     energy = [el[0]*el[1] for el in summar]
@@ -475,8 +537,7 @@ def visual_up_post():
     # post_all = [magnetic[i]*electric[i] for i in len(magnetic)]
 
 
-
-    plt.figure(4)
+    plt.figure(1)
     plt.subplot(2, 1, 1)
     figure_draw(magnetic, 'Магнетизм')
     plt.subplot(2, 1, 2)
@@ -485,9 +546,9 @@ def visual_up_post():
 
     # mng = plot.get_current_fig_manager()
     # mng.window.state('zoomed')
-    name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_переменный.png"
-    plt.savefig(name)
-
+    name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_постоянный.png"
+    # plt.savefig(name)
+    plt.show()
 
 def visual_front():
     #  вид спереди 3-8:
@@ -577,6 +638,11 @@ p = ti / 24  # статистическая вероятность воздей�
 SZ = {4: 1.8}
 
 z_graph = z_vu
+
+# TODO одновременно на одном СВЕРХУ и на одном СПЕРЕДИ смотрим:
+#  1. шина
+#  2. оборудование
+#  после того как сработало на постоянном, проверяем переменные и гармоники
 
 # visual_up_per()
 visual_up_post()

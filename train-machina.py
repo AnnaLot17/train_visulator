@@ -16,7 +16,9 @@ ti = 1  # длительность пребывания работника на 
 
 # КОНСТАНТЫ
 
-dis = 100  # дискретизация графиков
+# dis = 100  # дискретизация графиков
+# TODO это только для проверки
+dis = 40  # дискретизация графиков
 harm = {50: [1, 1],
         150: [0.3061, 0.400],
         250: [0.1469, 0.115],
@@ -99,11 +101,26 @@ l_td = 0.66
 z_td = 1
 kol_par = 1.5
 
+I_mt = 550
+U_mt = 27000
+
+I_tt_gk = 1750
+U_tt_gk = 1218
+
+I_gk_vu = 3150
+U_gk_vu = 1400
+
 I_vu_cp = 3150
 U_vu_cp = 1400
 
 I_cp_td = 880
 U_cp_td = 950
+
+I_tt = 750
+U_tt = 1218
+
+I_gk = 1300
+U_gk = 3000
 
 I_vu = 1850
 U_vu = 1500
@@ -150,20 +167,41 @@ koef_ekr_e_splosh = 1 / ke_metal
 
 # ШИНЫ И ОБОРУДОВАНИЕ
 
+# формат шин: [(координаты начала), (смещение конца относительно начала)]
+# формат оборудования: [[x_нач, x_кон, y_нач, y_кон, z_нач, z_кон]]
+
+# TODO уточнить высоту ВУ-СР шины
 # ПЕРЕМЕННОЕ
 
+mednaya_truba = [[(x_mt, y_mt, 0), (0, 0, height)]]
+
+sh_tt_gk = [[(x_tt+l_tt/6*i, y_tt, 0), (0, 0, -1.5)] for i in range(0, 7)]
+
+sh_gk_vu = [[(x_gk, y_gk + h_gk, z_gk), (0, 0.5, 0)],
+            [(x_gk, y_gk + h_gk + 0.5, z_gk), (0, 0, 0.8)],
+            [(x_gk, y_gk + h_gk + 0.5, z_gk + 0.8), (-0.8, 0, 0)],
+            [(x_gk-0.8, y_gk + h_gk + 0.5, z_gk + 0.8), (0, -0.8, 0)],
+            [(x_gk-0.8, y_gk + h_gk + 0.5 - 0.8, z_gk + 0.8), (0, 0, -1.6)],
+            [(x_gk-0.8, y_gk + h_gk + 0.5 - 0.3, z_gk + 0.8 - 1.1), (-0.15, 0, 0)],
+            [(x_gk-0.8, y_gk + h_gk + 0.5 - 0.3, z_gk + 0.8 - 1.6), (0, -0.9, 0)],
+            [(x_gk-0.8, y_gk + h_gk + 0.5 - 0.3 - 1.4, z_gk + 0.8 - 1.6), (-0.15, 0, 0)],
+
+            [(x_gk+l_gk, y_gk + h_gk, z_gk), (0, 0.5, 0)],
+            [(x_gk+l_gk, y_gk + h_gk + 0.5, z_gk), (0, 0, 0.8)],
+            [(x_gk+l_gk, y_gk + h_gk + 0.5, z_gk+0.8), (0.8, 0, 0)],
+            [(x_gk+l_gk+0.8, y_gk + h_gk + 0.5, z_gk+0.8), (0, -0.8, 0)],
+            [(x_gk+l_gk+0.8, y_gk + h_gk + 0.5 - 0.8, z_gk+0.8), (0, 0, -1.6)],
+            [(x_gk+l_gk+0.8, y_gk + h_gk + 0.5 - 0.3, z_gk+0.8-1.1), (0.15, 0, 0)],
+            [(x_gk+l_gk+0.8, y_gk + h_gk + 0.5 - 0.3, z_gk+0.8-1.6), (0, -0.9, 0)],
+            [(x_gk+l_gk+0.8, y_gk + h_gk + 0.5 - 0.3-1.4, z_gk+0.8-1.6), (0.15, 0, 0)],
+            ]
+
+tt = [[x_tt, x_tt + l_tt, y_tt, y_tt + w_tt, 0.5, 0.5 - h_tt]]
+
+gk = [[x_gk, x_gk + l_gk, y_gk, y_gk + w_gk, z_gk, z_gk + h_gk]]
 
 # ПОСТОЯННОЕ
 
-# todo итого: нужно ли ЗДЕСЬ напряжение и ток или в другом месте?
-# формат: [(координаты начала), (смещение конца относительно начала), (ток, напряжение)]
-
-# TODO уточнить высоту ВУ-СР шины
-
-# todo для проверки
-sh_test = [[(1, 1.4, z_vu),  (5, 0, 0)]]
-
-# ВУ-СР
 sh_vu_cp = [
             [(x_vu1, y_vu1 + 0.2, z_vu), (1, 0, 0)],
             [(x_vu1, y_vu2 + 0.2, z_vu), (1, 0, 0)],
@@ -175,7 +213,6 @@ sh_vu_cp = [
             [(x_vu2 - 1, y_vu1 + 0.2, z_vu), (0, 1.4, 0)],
             [(x_vu2-1, y_vu1 + 0.83, z_vu), (0.6, 0, 0)]]
 
-# СР-ТД
 sh_cp_td = [
             [(x_cp2 + l_cp, y_cp, 0), (0, 0, 1.9)],
             [(x_cp2 + l_cp, y_cp, 1.9), (0, 0, -0.8)],
@@ -194,20 +231,6 @@ vu = [[x_vu1, x_vu1 - l_vu, y_vu1, y_vu1 + h_vu, z_vu, z_vu+w_vu],
 
 cp = [[x_cp1, x_cp1 - l_cp, y_cp - 0.5 * h_cp, y_cp + 0.5 * h_cp, z_cp, z_cp+w_cp],
       [x_cp2, x_cp2 + l_cp, y_cp - 0.5 * h_cp, y_cp + 0.5 * h_cp, z_cp, z_cp+w_cp]]
-
-
-# TODO сколько их?
-# TODO как рисуем?
-# TODO как считаем?
-# ted = [[x_td1_sr - l_td * 0.5, x_td1_sr + l_td * 0.5,
-#         0.5 * (width + h_td), 0.5 * (width - h_td), 1 - z_td * 0.5, 1 + z_td * 0.5],
-#        [x_td1_sr + kol_par - l_td * 0.5, x_td1_sr + kol_par + l_td * 0.5,
-#         0.5 * (width + h_td), 0.5 * (width - h_td), 1 - z_td * 0.5, 1 + z_td * 0.5],
-#        [x_td2_sr - kol_par - l_td * 0.5, x_td2_sr - kol_par + l_td * 0.5,
-#         0.5 * (width + h_td), 0.5 * (width - h_td), 1 - z_td * 0.5, 1 + z_td * 0.5],
-#        [x_td2_sr - l_td * 0.5, x_td2_sr + l_td * 0.5,
-#         0.5 * (width + h_td), 0.5 * (width - h_td), 1 - z_td * 0.5, 1 + z_td * 0.5]
-#        ]
 
 
 def radius(st, ed):
@@ -249,13 +272,8 @@ def shina(shinas, v1arr, v2arr, v3, I, U, type_='FRONT', ver_='PER'):
 
     return res
 
-# имеется ТЭД, СУ, ВУ, ГК, и проч.
-# посчитать электричество а потом туда мгнетизм
 
-# в одном пуле - несколько
-
-
-def oborud(element, v1arr, v2arr, v3, I, U, n, type_='FRONT', ver_='PER', ob='com'):
+def oborud(element, v1arr, v2arr, v3, I, U, n=1, type_='FRONT', ver_='PER', ob='com'):
     if ob == 'com':
         ds = 4
         points = []
@@ -267,7 +285,7 @@ def oborud(element, v1arr, v2arr, v3, I, U, n, type_='FRONT', ver_='PER', ob='co
     else:  # если это ТЭД
         ds = 8
         # todo ещё ТЭДы - в [x_td1_sr]
-        nodes_x = [dx + 0.5 * r_td * np.cos(ap) for dx in [x_td1_sr]
+        nodes_x = [dx + 0.5 * r_td * np.cos(ap) for dx in [x_td1_sr, x_td1_sr+kol_par]
                    for ap in np.linspace(0, 2 * pi, ds)]
         nodes_z = [z_td + 0.5 * r_td * np.sin(ap) for ap in np.linspace(0, 2 * pi, ds)]
         nodes_y = [td - td_p for td in [dy_td, -dy_td] for td_p in np.linspace(-0.5 * l_td, 0.5 * l_td, 4)]
@@ -287,7 +305,6 @@ def oborud(element, v1arr, v2arr, v3, I, U, n, type_='FRONT', ver_='PER', ob='co
 
     l_ob = abs(element[0][1] - element[0][0])
 
-    # TODO это постоянное а надо ещё и переменное
     def in_point(x_, y_, z_):
         if ver_ == 'PER':
             H_ob, E_ob = 0, 0
@@ -300,7 +317,7 @@ def oborud(element, v1arr, v2arr, v3, I, U, n, type_='FRONT', ver_='PER', ob='co
                 r_m = ((m[0] - x_) ** 2 + (m[1] - y_) ** 2 + (floor - z_) ** 2) ** 0.5
                 if r_m != 0:
                     E_ob += U / r_m / len(minus)
-            return [{f: [harm[f] * H_ob * n / len(points), harm[f] * E_ob] for f in harm.keys()}, (x_, y_, z_)]
+            return [{f: [harm[f][0] * H_ob * n / len(points), harm[f][1] * E_ob] for f in harm.keys()}, (x_, y_, z_)]
         else:
             H_ob, E_ob = 0, 0
             for p in points:
@@ -321,7 +338,6 @@ def oborud(element, v1arr, v2arr, v3, I, U, n, type_='FRONT', ver_='PER', ob='co
 
 
 def field_sum_per(*arg):
-    # TODO координату сохраняем
     def summ(f, i):
         sum_h, sum_e = 0, 0
         for el in arg:
@@ -332,7 +348,6 @@ def field_sum_per(*arg):
 
 
 def field_sum_post(*arg):
-    # TODO координату сохраняем
     def summ(i):
         sum_h, sum_e = 0, 0
         for el in arg:
@@ -402,6 +417,26 @@ def lines_shina(shina_, color, type_='FRONT'):
     do_draw(h_lines, v_lines, color, type_)
 
 
+def lines_ted(color, type_='FRONT'):
+    l = 0.5*l_td
+    r = 0.5*r_td
+    w = 0.5*width
+    if type_ == 'FRONT':
+        h_lines = [[z, y-l, y+l]
+                   for z in [z_td-r, z_td+r] for y in [w-dy_td, w+dy_td]]
+        v_lines = [[y+dy, z_td-r,  z_td+r] for dy in [l, -l]
+                   for y in [w-dy_td, w+dy_td]]
+    else:
+        h_lines = [[y, x-r, x+r] for y in [w-dy_td, w+dy_td]
+                   for x in [x_td1_sr, x_td1_sr + kol_par]]
+        # for x in [x_td1_sr, x_td1_sr + kol_par, x_td2_sr, x_td2_sr-kol_par]]
+        v_lines = [[x+dx, y-l, y+l] for y in [w-dy_td, w+dy_td] for dx in [r, -r]
+                   for x in [x_td1_sr, x_td1_sr + kol_par]]
+        # for x in [x_td1_sr, x_td1_sr + kol_par, x_td2_sr, x_td2_sr-kol_par]]
+
+    do_draw(h_lines, v_lines, color, type_)
+
+
 # TODO достаём внешнее поле из первого модуля
 
 
@@ -428,6 +463,13 @@ def triang_draw(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb
     plt.title(name_)
 
 
+def show(name):
+    # mng = plt.get_current_fig_manager()
+    # mng.window.state('zoomed')
+    file_name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png"
+    plt.savefig(file_name)
+
+
 def visual_up_per():
     print('График строится..................')
 
@@ -443,25 +485,22 @@ def visual_up_per():
 
     def figure_draw(znach, name_):
         triang_draw(tr, znach, name_)
-        # TODO шины переменные
-        # lines_shina(sh_vu_cp, 'turquoise', type_='UP')
-        # lines_shina(sh_cp_td, 'c', type_='UP')
-        # lines_oborud(vu, 'darkblue', type_='UP')
-        # lines_oborud(cp, 'magenta', type_='UP')
+        lines_shina(sh_tt_gk, 'turquoise', type_='UP')
+        lines_shina(sh_gk_vu, 'c', type_='UP')
+        lines_oborud(gk, 'darkblue', type_='UP')
+        lines_oborud(tt, 'magenta', type_='UP')
 
     print('Расчёт поля переменного тока.....')
     print('Расчёт поля шин...')
-    # TODO переменные шины
-    vu_cp = shina(sh_vu_cp, x_ln, y_ln, z_graph, I_vu_cp, U_vu_cp, type_='UP')
-    cp_td = shina(sh_cp_td, x_ln, y_ln, z_graph, I_cp_td, U_cp_td, type_='UP')
+    tt_gk = shina(sh_tt_gk, x_ln, y_ln, z_graph, I_tt_gk, U_tt_gk, type_='UP', ver_='PER')
+    gk_vu = shina(sh_gk_vu, x_ln, y_ln, z_graph, I_gk_vu, U_gk_vu, type_='UP', ver_='PER')
     print('Расчёт поля оборудования...')
-    # TODO переменные оборудования
-    vu_f = oborud(vu, x_ln, y_ln, z_graph, I_vu, U_vu, n_vu, ver_='POST', type_='UP')
-    cp_f = oborud(cp, x_ln, y_ln, z_graph, I_cp, U_cp, n_cp, ver_='POST', type_='UP')
+    gk_f = oborud(gk, x_ln, y_ln, z_graph, I_gk, U_gk, type_='UP')
+    tt_f = oborud(tt, x_ln, y_ln, z_graph, I_tt, U_tt, type_='UP')
 
-    field = field_sum_per(vu_cp, cp_td, vu_f, cp_f)
+    field = field_sum_per(tt_gk, gk_vu, gk_f, tt_f)
 
-    summar = [full_energy(el) for el in field]
+    summar = [full_energy(el[0]) for el in field]
     magnetic = [el[0] for el in summar]
     electric = [el[1] for el in summar]
     energy = [el[0]*el[1] for el in summar]
@@ -476,20 +515,61 @@ def visual_up_per():
     plt.subplot(3, 1, 3)
     figure_draw(energy, 'Электричество')
     plt.suptitle('Переменный вид сверху')
+    show('пер_верх')
 
-    # mng = plot.get_current_fig_manager()
-    # mng.window.state('zoomed')
-    name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_переменный.png"
-    plt.savefig(name)
+    gph_num += 1
+    plt.figure(gph_num)
+    name = 'Гармоники магнитное вид сверху'
+    j = 0
+    for f in harm.keys():
+        j += 1
+        plt.subplot(3, 3, j)
+        data = [dt[0][fr][0] for dt in field]
+        triang_draw(tr, data, '', y_lb=str(fr))
+    # plt.subplot(3, 3, 9)
+    # plt.bar(range(0, len(harm.keys())), chel_harm_e)
+    plt.suptitle(name)
+    show('гарм_маг_верх')
 
-    # plt.figure(2)
-    #    TODO переменный гаромоники ток
-    # plt.figure(3)
-    #    TODO переменный гаромоники электричество
-    # plt.figure(4)
-    #    TODO переменный гаромоники общий
-    # plt.figure(5)
-    #    TODO общая энергия без экрана, лист, сетка
+    gph_num += 1
+    plt.figure(gph_num)
+    name = 'Гармоники электричество вид сверху'
+    j = 0
+    for f in harm.keys():
+        j += 1
+        plt.subplot(3, 3, j)
+        data = [dt[0][fr][1] for dt in field]
+        triang_draw(tr, data, '', y_lb=str(fr))
+    # plt.subplot(3, 3, 9)
+    # plt.bar()
+    plt.suptitle(name)
+    show('гарм_эл_верх')
+
+    gph_num += 1
+    plt.figure(gph_num)
+    name = 'Гармоники электричество вид сверху'
+    j = 0
+    for f in harm.keys():
+        j += 1
+        plt.subplot(3, 3, j)
+        data = [dt[0][fr][0] * dt[0][fr][1] for dt in field]
+        triang_draw(tr, data, '', y_lb=str(fr))
+    # plt.subplot(3, 3, 9)
+    # plt.bar()
+    plt.suptitle(name)
+    show('гарм_эл_верх')
+
+    # global gph_num
+    # gph_num += 1
+    # plt.figure(gph_num)
+    # plt.subplot(3, 1, 1)
+    # # figure_draw(, 'Без экрана')
+    # plt.subplot(3, 1, 2)
+    # # figure_draw(electric, 'Экран сетка')
+    # plt.subplot(3, 1, 3)
+    # # figure_draw(energy, 'Экран лист')
+    # plt.suptitle('Экранирование переменный ток')
+    # show('экр_пер')
 
 
 def visual_up_post():
@@ -510,6 +590,7 @@ def visual_up_post():
         lines_shina(sh_cp_td, 'c', type_='UP')
         lines_oborud(vu, 'darkblue', type_='UP')
         lines_oborud(cp, 'magenta', type_='UP')
+        lines_ted('darkblue', type_='UP')
 
     print('Расчёт поля постоянного тока.....')
     print('Расчёт поля шин...')
@@ -534,19 +615,22 @@ def visual_up_post():
     plt.subplot(3, 1, 3)
     figure_draw(energy, 'Энергия')
     plt.suptitle('Постоянный, вид сверху')
+    show('пост_верх')
 
-    # mng = plot.get_current_fig_manager()
-    # mng.window.state('zoomed')
-    name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_постоянный.png"
-    plt.savefig(name)
-    # plt.show()
+    # global gph_num
+    # gph_num += 1
+    # plt.figure(gph_num)
+    # plt.subplot(3, 1, 1)
+    # # figure_draw(, 'Без экрана')
+    # plt.subplot(3, 1, 2)
+    # # figure_draw(electric, 'Экран сетка')
+    # plt.subplot(3, 1, 3)
+    # # figure_draw(energy, 'Экран лист')
+    # plt.suptitle('Экранирование постоянный ток')
+    # show('экр_пост')
 
 
 def visual_front():
-    #  вид спереди 3-8:
-    #    энергия постоянный
-    #    энергия переменный
-    #    энергия переменный гармоники
     print('График строится..................')
 
     Ymax = -0.5 * width
@@ -564,13 +648,17 @@ def visual_front():
     for no in SZ.keys():
         print(f"Построение среза {SZ[no]} м")
         print('Расчёт поля переменного тока...')
-        # TODO пепеменный
-        kab = [[{fr: [z * y * SZ[no] * harm[fr][0], 1] for fr in harm.keys()}, (SZ[no], y, z)]
-               for z in z_ln for y in y_ln]
 
-        # всё ещё рыба
-        field_per = [full_energy(el[0]) for el in kab]
-        energy_per = [el[0] * el[1] for el in field_per]
+        print('Расчёт поля шин...')
+        tt_gk = shina(sh_tt_gk, y_ln, z_ln, SZ[no], I_tt_gk, U_tt_gk, ver_='PER')
+        gk_vu = shina(sh_gk_vu, y_ln, z_ln, SZ[no], I_gk_vu, U_gk_vu, ver_='PER')
+        print('Расчёт поля оборудования...')
+        gk_f = oborud(gk, y_ln, z_ln, SZ[no], I_gk, U_gk)
+        tt_f = oborud(tt, y_ln, z_ln, SZ[no], I_tt, U_tt)
+
+        field_per = field_sum_per(tt_gk, gk_vu, gk_f, tt_f)
+        summar = [full_energy(el[0]) for el in field_per]
+        energy_per = [el[0] * el[1] for el in summar]
 
         print('Расчёт поля постоянного тока...')
         print('Расчёт поля шин...')
@@ -588,6 +676,10 @@ def visual_front():
         name = f'Энергия. Вид спереди. Срез {SZ[no]} метров.'
         plt.subplot(1, 2, 1)
         triang_draw(tr, energy_per, 'Переменный', y_lb='Ось z, метры')
+        lines_shina(sh_tt_gk, 'turquoise')
+        lines_shina(sh_gk_vu, 'c')
+        lines_oborud(gk, 'darkblue')
+        lines_oborud(tt, 'magenta')
 
         plt.subplot(1, 2, 2)
         triang_draw(tr, energy_post, 'Постоянный', y_lb='Ось z, метры')
@@ -595,32 +687,24 @@ def visual_front():
         lines_shina(sh_cp_td, 'blue')
         lines_oborud(vu, 'c')
         lines_oborud(cp, 'magenta')
+        lines_ted('darkblue')
 
         plt.suptitle(name)
-
-        # mng = plot.get_current_fig_manager()
-        # mng.window.state('zoomed')
-
-        name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{no}_м.png"
-        plt.savefig(name)
+        show(f'энерг_{no}_м')
 
         gph_num += 1
         plt.figure(gph_num)
         name = 'Гармоники вид спереди'
         j = 0
-        # chel_harm_e = []
-        # TODO нужна ли какая-то гистограмма? Если нужна - то на какую точку?
-        for fr in harm.keys():
+        for f in harm.keys():
             j += 1
             plt.subplot(3, 3, j)
-            data = [dt[0][fr] for dt in kab]
-            triang_draw(tr, data, '', y_lb=str(fr))
+            data = [dt[0][f][0]*dt[0][f][1] for dt in field_per]
+            triang_draw(tr, data, '', y_lb=str(f))
         # plt.subplot(3, 3, 9)
-        # plt.bar(range(0, len(harm.keys())), chel_harm_e)
+        # plt.bar()
         plt.suptitle(name)
-
-        name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_гарм_{no}_м.png"
-        plt.savefig(name)
+        show(f'гарм_{no}_м')
 
 
 ## РАСЧЁТ СТАТИСТИКИ ##
@@ -641,40 +725,22 @@ p = ti / 24  # статистическая вероятность воздей�
 #       7: 4.5,
 #       8: 5.6}
 
-SZ = {4: 1.8}
+SZ = {4: 1.8, 5: 2.7}
 
 z_graph = floor
 
-# TODO одновременно на одном СВЕРХУ и на одном СПЕРЕДИ смотрим:
-#  1. шина
-#  2. оборудование
-#  после того как сработало на постоянном, проверяем переменные и гармоники
-
 gph_num = 0
-print('Вид сверху.')
+print('\nВид сверху.')
 visual_up_per()
-# visual_up_post()
-print('Вид спереди')
-# visual_front()
+visual_up_post()
+print('\nВид спереди')
+visual_front()
 
-# Уже сделано:
-# - рыбы графиков вид сверху
-# - координаты постоянных шин и оборудования
-# -- КРОМЕ ТЭД
-# - рисование шин и оборудования с координат
-# - расчёт постоянных шин
-#  TODO проверить посчёт шин
+# TODO что-то не то с рисованием шин. Проверить их в процессе проверки оборудования.
 
-
-
-# TODO переменные шины и оборудование
-
-# TODO 4. по очереди добавляем формулы и проверяем
-# TODO      4.1 постоянное магнитное шины
-# TODO      2. постоянное магнитное оборудование
-# TODO      3. переменное магнитное всё
-# TODO      4. постоянное электричесткое
-# TODO      5. постоянное магнитное
+# TODO проверка как отдельно ведут все шины и все оборуд
+# TODO ТЭД правильно
 # TODO 5. экран и статистика
+# TODO уточнения
 
 plt.show()

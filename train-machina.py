@@ -95,7 +95,7 @@ z_cp = 0.6
 w_cp = -0.6
 
 x_td1 = 0.9  # тяговый двигатель
-x_td2 = x_td1 + 10
+x_td2 = x_td1 + 8
 dy_td = 0.8
 r_td = 0.604
 l_td = 0.66
@@ -130,6 +130,10 @@ n_vu = 7
 I_cp = 3150
 U_cp = 1400
 n_cp = 1
+
+I_td = 880
+U_td = 1950
+n_td = 5
 
 # РАЗМЕРЫ И ДАННЫЕ ЭКРАНА
 
@@ -187,7 +191,7 @@ sh_gk_vu = [[(x_gk, y_gk + h_gk, z_gk), (0, 0.5, 0)],
             [(x_gk-0.8, y_gk + h_gk + 0.5, z_gk + 0.8), (0, -0.8, 0)],
             [(x_gk-0.8, y_gk + h_gk + 0.5 - 0.8, z_gk + 0.8), (0, 0, -1.6)],
             [(x_gk-0.8, y_gk + h_gk + 0.5 - 0.3, z_gk + 0.8 - 1.1), (-0.15, 0, 0)],
-            [(x_gk-0.8, y_gk + h_gk + 0.5 - 0.3, z_gk + 0.8 - 1.6), (0, -0.9, 0)],
+            [(x_gk-0.8, y_gk + h_gk + 0.5 - 0.3, z_gk + 0.8 - 1.6), (0, -1.4, 0)],
             [(x_gk-0.8, y_gk + h_gk + 0.5 - 0.3 - 1.4, z_gk + 0.8 - 1.6), (-0.15, 0, 0)],
 
             [(x_gk+l_gk, y_gk + h_gk, z_gk), (0, 0.5, 0)],
@@ -196,7 +200,7 @@ sh_gk_vu = [[(x_gk, y_gk + h_gk, z_gk), (0, 0.5, 0)],
             [(x_gk+l_gk+0.8, y_gk + h_gk + 0.5, z_gk+0.8), (0, -0.8, 0)],
             [(x_gk+l_gk+0.8, y_gk + h_gk + 0.5 - 0.8, z_gk+0.8), (0, 0, -1.6)],
             [(x_gk+l_gk+0.8, y_gk + h_gk + 0.5 - 0.3, z_gk+0.8-1.1), (0.15, 0, 0)],
-            [(x_gk+l_gk+0.8, y_gk + h_gk + 0.5 - 0.3, z_gk+0.8-1.6), (0, -0.9, 0)],
+            [(x_gk+l_gk+0.8, y_gk + h_gk + 0.5 - 0.3, z_gk+0.8-1.6), (0, -1.4, 0)],
             [(x_gk+l_gk+0.8, y_gk + h_gk + 0.5 - 0.3-1.4, z_gk+0.8-1.6), (0.15, 0, 0)],
             ]
 
@@ -305,7 +309,10 @@ def oborud(element, v1arr, v2arr, v3, I, U, n=1, type_='FRONT', ver_='PER', ob='
     # else:
     #     minus = [[x_, y_] for y_ in v2arr for x_ in v1arr]
 
-    l_ob = abs(element[0][1] - element[0][0])
+    if ob == 'com':
+        l_ob = abs(element[0][1] - element[0][0])
+    else:
+        l_ob = l_tt
 
     def in_point(x_, y_, z_):
         if ver_ == 'PER':
@@ -367,41 +374,45 @@ def full_energy(en):
     return [sum_h, sum_e]
 
 
-def ekran(el, tp='SETKA', ver='PER'):
-    if el[1][0] > length + 0.4:
+def ekran(elm, tp='SETKA', ver='PER'):
+    if elm[1][0] > length + 0.4:
         if ver == 'PER':
-            eg = full_energy(el[0])
+            eg = full_energy(elm[0])
             return eg[0] * eg[1]
         else:
-            return el[0][0] * el[0][1]
+            return elm[0][0] * elm[0][1]
     else:
-        if tp == 'SETKA':
-            if ver == 'PER':
-                k_h = koef_ekr_h_setka
-                k_e = koef_ekr_e_setka
-            else:
-                k_h = k_post_ekr_h_setka
-                k_e = k_post_ekr_e_setka
-        else:
-            k_e = koef_ekr_e_splosh
-            k_h = koef_ekr_h_splosh_v
-        if el[1][0] < length:
-            k_e = {f: k_e[f]*koef_ekr_e_splosh for f in k_h.keys()}\
-                if type(k_h) == dict else k_e * koef_ekr_e_splosh
-            k_h = {f: k_e[f] * koef_ekr_h_splosh_z for f in k_h.keys()} \
-                if type(k_h) == dict else k_e * koef_ekr_h_splosh_z
+        k_h = 1000
+        k_e = 1000
+        # if tp == 'SETKA':
+        #     if ver == 'PER':
+        #         k_h = koef_ekr_h_setka
+        #         k_e = koef_ekr_e_setka
+        #     else:
+        #         k_h = k_post_ekr_h_setka
+        #         k_e = k_post_ekr_e_setka
+        # else:
+        #     k_e = koef_ekr_e_splosh
+        #     k_h = koef_ekr_h_splosh_v
+        if elm[1][0] < length:
+            k_e *= 1000
+            k_h *= 1000
+            # k_e = {f: k_e[f]*koef_ekr_e_splosh for f in k_h.keys()}\
+            #     if type(k_h) == dict else k_e * koef_ekr_e_splosh
+            # k_h = {f: k_e[f] * koef_ekr_h_splosh_z for f in k_h.keys()} \
+            #     if type(k_h) == dict else k_e * koef_ekr_h_splosh_z
 
     if ver == 'PER':
         sum_h, sum_e = 0, 0
         for fq in harm.keys():
-            sum_h += el[0][fq][0] / k_h[fq] if type(k_h) == dict else el[0][fq][0] / k_h
-            sum_e += el[0][fq][1] / k_e[fq] if type(k_h) == dict else el[0][fq][1] / k_e
+            sum_h += elm[0][fq][0] / k_h[fq] if type(k_h) == dict else elm[0][fq][0] / k_h
+            sum_e += elm[0][fq][1] / k_e[fq] if type(k_e) == dict else elm[0][fq][1] / k_e
         return sum_h * sum_e
     else:
-        return el[0][0] / k_h * el[0][1] / k_e
+        return elm[0][0] / k_h * elm[0][1] / k_e
 
 
-def do_draw(h_lines, v_lines, c, type_):
+def do_draw(h_lines, v_lines, c, type_, nm=''):
     li = '--'
     if type_ == 'FRONT':
         for h in h_lines:
@@ -414,8 +425,13 @@ def do_draw(h_lines, v_lines, c, type_):
         for v in v_lines:
             plt.vlines(length + v[0], -0.5 * width + v[1], -0.5 * width + v[2], colors=c, linestyles=li)
 
+    if nm != '':
+        x = max(v[0] for v in v_lines)
+        y = max(h[0] for h in h_lines)
+        plt.text(x, y, nm)
 
-def lines_oborud(oborud_, color, type_='FRONT'):
+
+def lines_oborud(oborud_, color, nm, type_='FRONT'):
     h_lines = []
     v_lines = []
     if type_ == 'FRONT':
@@ -431,7 +447,7 @@ def lines_oborud(oborud_, color, type_='FRONT'):
             v_lines.append([ob[0], ob[2], ob[3]])
             v_lines.append([ob[1], ob[2], ob[3]])
 
-    do_draw(h_lines, v_lines, color, type_)
+    do_draw(h_lines, v_lines, color, type_, nm=nm)
 
 
 def lines_shina(shina_, color, type_='FRONT'):
@@ -463,7 +479,7 @@ def lines_ted(color, type_='FRONT'):
         v_lines = [[y+dy, z_td-r,  z_td+r] for dy in [l, -l]
                    for y in [w-dy_td, w+dy_td]]
     else:
-        h_lines = [[y, x-r, x+r] for y in [w-dy_td, w+dy_td]
+        h_lines = [[y, x-r, x+r] for dy in [-l, l] for y in [w-dy_td+dy, w+dy_td+dy]
                    for x in [x_td1, x_td1 + kol_par, x_td2, x_td2+kol_par]]
         v_lines = [[x+dx, y-l, y+l] for y in [w-dy_td, w+dy_td] for dx in [r, -r]
                    for x in [x_td1, x_td1 + kol_par, x_td2, x_td2+kol_par]]
@@ -483,11 +499,11 @@ def make_triang(x_arr, y_arr):
     return tri.Triangulation(nodes_x, nodes_y, elements)
 
 
-def triang_draw(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='Ось y, метры'):
+def triang_draw(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='Ось y, метры', lv=5):
     plt.axis('equal')
     plt.tricontourf(triangulation, scalar_, cmap='YlOrRd')
     plt.colorbar()
-    tcf = plt.tricontour(triangulation, scalar_, alpha=0.75, colors='black', linestyles='dotted', levels=5)
+    tcf = plt.tricontour(triangulation, scalar_, alpha=0.75, colors='black', linestyles='dotted', levels=lv)
     plt.clabel(tcf, fontsize=10)
 
     plt.xlabel(x_lb)
@@ -497,6 +513,7 @@ def triang_draw(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb
 
 
 def show(name):
+    pass
     # mng = plt.get_current_fig_manager()
     # mng.window.state('zoomed')
     file_name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png"
@@ -520,8 +537,8 @@ def visual_up_per():
         triang_draw(tr, znach, name_)
         lines_shina(sh_tt_gk, 'turquoise', type_='UP')
         lines_shina(sh_gk_vu, 'c', type_='UP')
-        lines_oborud(gk, 'darkblue', type_='UP')
-        lines_oborud(tt, 'magenta', type_='UP')
+        lines_oborud(gk, 'lime', 'ГК', type_='UP')
+        lines_oborud(tt, 'white', 'ТТ', type_='UP')
 
     print('Расчёт поля переменного тока.....')
     print('Расчёт поля шин...')
@@ -556,11 +573,9 @@ def visual_up_per():
     j = 0
     for f in harm.keys():
         j += 1
-        plt.subplot(3, 3, j)
-        data = [dt[0][fr][0] for dt in field]
-        triang_draw(tr, data, '', y_lb=str(fr))
-    # plt.subplot(3, 3, 9)
-    # plt.bar(range(0, len(harm.keys())), chel_harm_e)
+        plt.subplot(4, 2, j)
+        data = [dt[0][f][0] for dt in field]
+        triang_draw(tr, data, '', y_lb=str(fr), lv=3)
     plt.suptitle(name)
     show('гарм_маг_верх')
 
@@ -570,40 +585,24 @@ def visual_up_per():
     j = 0
     for f in harm.keys():
         j += 1
-        plt.subplot(3, 3, j)
-        data = [dt[0][fr][1] for dt in field]
-        triang_draw(tr, data, '', y_lb=str(fr))
-    # plt.subplot(3, 3, 9)
-    # plt.bar()
-    plt.suptitle(name)
-    show('гарм_эл_верх')
-
-    gph_num += 1
-    plt.figure(gph_num)
-    name = 'Гармоники электричество вид сверху'
-    j = 0
-    for f in harm.keys():
-        j += 1
-        plt.subplot(3, 3, j)
-        data = [dt[0][fr][0] * dt[0][fr][1] for dt in field]
-        triang_draw(tr, data, '', y_lb=str(fr))
-    # plt.subplot(3, 3, 9)
-    # plt.bar()
+        plt.subplot(4, 2, j)
+        data = [dt[0][f][1] for dt in field]
+        triang_draw(tr, data, '', y_lb=str(fr), lv=3)
     plt.suptitle(name)
     show('гарм_эл_верх')
 
     print('Расчёт экрана...')
-    energy_setka = [ekran(el) for el in field]
-    energy_splosh = [ekran(el, tp='SPLOSH') for el in field]
+    energy_setka = [ekran(e) for e in field]
+    energy_splosh = [ekran(e, tp='SPLOSH') for e in field]
 
     gph_num += 1
     plt.figure(gph_num)
     plt.subplot(3, 1, 1)
-    figure_draw(energy, 'Без экрана')
+    triang_draw(tr, energy, 'Без экрана')
     plt.subplot(3, 1, 2)
-    figure_draw(energy_setka, 'Экран сетка')
+    triang_draw(tr, energy_setka, 'Экран сетка')
     plt.subplot(3, 1, 3)
-    figure_draw(energy_splosh, 'Экран лист')
+    triang_draw(tr, energy_splosh, 'Экран лист')
     plt.suptitle('Экранирование переменный ток')
     show('экр_пер')
 
@@ -625,10 +624,10 @@ def visual_up_post():
 
     def figure_draw(znach, name_):
         triang_draw(tr, znach, name_)
-        lines_shina(sh_vu_cp, 'turquoise', type_='UP')
-        lines_shina(sh_cp_td, 'c', type_='UP')
-        lines_oborud(vu, 'darkblue', type_='UP')
-        lines_oborud(cp, 'magenta', type_='UP')
+        lines_shina(sh_vu_cp, 'darkcyan', type_='UP')
+        lines_shina(sh_cp_td, 'royalblue', type_='UP')
+        lines_oborud(vu, 'aqua', 'ВУ', type_='UP')
+        lines_oborud(cp, 'indigo', 'СР', type_='UP')
         lines_ted('darkblue', type_='UP')
 
     print('Расчёт поля постоянного тока.....')
@@ -638,8 +637,9 @@ def visual_up_post():
     print('Расчёт поля оборудования...')
     vu_f = oborud(vu, x_ln, y_ln, z_graph, I_vu, U_vu, n_vu, type_='UP', ver_='POST')
     cp_f = oborud(cp, x_ln, y_ln, z_graph, I_cp, U_cp, n_cp, type_='UP', ver_='POST')
+    ted_f = oborud([], x_ln, y_ln, z_graph, I_td, U_td, n_td, type_='UP', ver_='POST', ob='ted')
 
-    summar = field_sum_post(vu_cp, cp_td, vu_f, cp_f)
+    summar = field_sum_post(vu_cp, cp_td, vu_f, cp_f, ted_f)
     magnetic = [el[0][0] for el in summar]
     electric = [el[0][1] for el in summar]
     energy = [el[0][0]*el[0][1] for el in summar]
@@ -663,11 +663,11 @@ def visual_up_post():
     gph_num += 1
     plt.figure(gph_num)
     plt.subplot(3, 1, 1)
-    figure_draw(energy, 'Без экрана')
+    triang_draw(tr, energy, 'Без экрана')
     plt.subplot(3, 1, 2)
-    figure_draw(energy_setka, 'Экран сетка')
+    triang_draw(tr, energy_setka, 'Экран сетка')
     plt.subplot(3, 1, 3)
-    figure_draw(energy_splosh, 'Экран лист')
+    triang_draw(tr, energy_splosh, 'Экран лист')
     plt.suptitle('Экранирование постоянный ток')
     show('экр_пост')
 
@@ -702,8 +702,8 @@ def visual_front():
         tt_f = oborud(tt, y_ln, z_ln, SZ[no], I_tt, U_tt)
 
         field_per = field_sum_per(tt_gk, gk_vu, gk_f, tt_f)
-        summar = [full_energy(el[0]) for el in field_per]
-        energy_per = [el[0] * el[1] for el in summar]
+        summar = [full_energy(e[0]) for e in field_per]
+        energy_per = [e[0] * e[1] for e in summar]
 
         print('Расчёт поля постоянного тока...')
         print('Расчёт поля шин...')
@@ -712,8 +712,9 @@ def visual_front():
         print('Расчёт поля оборудования...')
         vu_f = oborud(vu, y_ln, z_ln, SZ[no], I_vu, U_vu, n_vu, ver_='POST')
         cp_f = oborud(cp, y_ln, z_ln, SZ[no], I_cp, U_cp, n_cp, ver_='POST')
+        ted_f = oborud([], y_ln, z_ln, SZ[no], I_td, U_td, n_td, ver_='POST', ob='ted')
 
-        field_post = field_sum_post(vu_cp, cp_td, vu_f, cp_f)
+        field_post = field_sum_post(vu_cp, cp_td, vu_f, cp_f, ted_f)
         energy_post = [e[0][0]*e[0][1] for e in field_post]
 
         gph_num += 1
@@ -723,15 +724,15 @@ def visual_front():
         triang_draw(tr, energy_per, 'Переменный', y_lb='Ось z, метры')
         lines_shina(sh_tt_gk, 'turquoise')
         lines_shina(sh_gk_vu, 'c')
-        lines_oborud(gk, 'darkblue')
-        lines_oborud(tt, 'magenta')
+        lines_oborud(gk, 'lime', 'ГК')
+        lines_oborud(tt, 'white', 'ТТ')
 
         plt.subplot(1, 2, 2)
         triang_draw(tr, energy_post, 'Постоянный', y_lb='Ось z, метры')
-        lines_shina(sh_vu_cp, 'turquoise')
-        lines_shina(sh_cp_td, 'blue')
-        lines_oborud(vu, 'c')
-        lines_oborud(cp, 'magenta')
+        lines_shina(sh_vu_cp, 'darkcyan')
+        lines_shina(sh_cp_td, 'royalblue')
+        lines_oborud(vu, 'aqua', 'ВУ')
+        lines_oborud(cp, 'indigo', 'СР')
         lines_ted('darkblue')
 
         plt.suptitle(name)
@@ -752,15 +753,12 @@ def visual_front():
         show(f'гарм_{no}_м')
 
 
-
 ## РАСЧЁТ СТАТИСТИКИ ##
 
 S = (a * b / 3600) ** 1 / 2
 p = ti / 24  # статистическая вероятность воздействия
 
-
 ## ПОСТРОЕНИЕ ГРАФИКА ##
-
 
 # формат
 # номер среза: расстояние в метрах от стенки, разделяющей кабину и машинное отделение
@@ -787,30 +785,37 @@ visual_front()
 
 # TODO уточнения
 
-print('\nпеременное | постоянное | общее')
+print('\nпеременное \t| постоянное\t | общее')
 
-e_per, e_post = field_sum_per(ch_per), field_sum_post(ch_post)
-print('Поле без экрана: %.4f' % e_per, e_post, e_per+e_post)
+e_per = 0
+for el in ch_per[0].values():
+    e_per += el[0]*el[1]
+e_post = ch_post[0][0] * ch_post[0][1]
+
+print(f'Поле без экрана:\n{e_per:.3f}\t| {e_post:.3f}\t| {(e_per+e_post):.3f}')
 
 ekr_per = 0
 for fq in harm.keys():
     ekr_per += ch_per[0][fq][0] / (koef_ekr_h_setka[fq] * koef_ekr_h_splosh_z) *\
                ch_per[0][fq][1] / (koef_ekr_e_setka[fq] * koef_ekr_e_splosh)
-ekr_post = ch_post[0] / (k_post_ekr_h_setka * koef_ekr_h_splosh_z) *\
-           ch_post[1] / (k_post_ekr_e_setka * koef_ekr_e_splosh)
-print('\nЭкран сетка %.4f' % ekr_per, ekr_post, e_per+ekr_post)
-Dco = (e_per+ekr_post) * ti * S * p
+ekr_post = ch_post[0][0] / (k_post_ekr_h_setka * koef_ekr_h_splosh_z) *\
+           ch_post[0][1] / (k_post_ekr_e_setka * koef_ekr_e_splosh)
+print('\nЭкран сетка:\n{ekr_per:.3f}\t| {ekr_post:.3f}\t| {(ekr_per+ekr_post):.3f}')
+Dco = (ekr_per+ekr_post) * ti * S * p
 Dpo = Dco / b
 print('Удельная суточная доза поглощённой энергии: %.4f' % Dpo)
 
 f_per = full_energy(ch_per[0])
 ekr_per = f_per[0] / (koef_ekr_h_splosh_v * koef_ekr_h_splosh_z) * \
           f_per[1] / (koef_ekr_e_splosh * koef_ekr_e_splosh)
-ekr_post = ch_post[0] / (koef_ekr_h_splosh_v * koef_ekr_h_splosh_z) *\
-           ch_post[1] / (koef_ekr_e_splosh * koef_ekr_e_splosh)
-print('\nЭкран сплошной %.4f' % ekr_per, ekr_post, e_per+ekr_post)
-Dco = (e_per+ekr_post) * ti * S * p
+ekr_post = ch_post[0][0] / (koef_ekr_h_splosh_v * koef_ekr_h_splosh_z) *\
+           ch_post[0][1] / (koef_ekr_e_splosh * koef_ekr_e_splosh)
+
+print('\nЭкран сплошной:\n{ekr_per:.3f}\t| {ekr_post:.3f}\t| {(ekr_per+ekr_post):.3f}')
+Dco = (ekr_per+ekr_post) * ti * S * p
 Dpo = Dco / b
 print('Удельная суточная доза поглощённой энергии: %.4f' % Dpo)
 
 plt.show()
+
+# TODO проверить что там таки с экраном

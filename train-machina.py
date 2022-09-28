@@ -92,13 +92,14 @@ y_cp = y_vu1 + 0.9
 l_cp = 0.8
 h_cp = 0.8
 z_cp = 0.6
-w_cp = -0.6  #TODO уточнить
+w_cp = -0.6
 
-x_td1_sr = 0.9  # тяговый двигатель
+x_td1 = 0.9  # тяговый двигатель
+x_td2 = x_td1 + 10
 dy_td = 0.8
 r_td = 0.604
 l_td = 0.66
-z_td = 1
+z_td = 1 - floor
 kol_par = 1.5
 
 I_mt = 550
@@ -150,20 +151,23 @@ s_ = 0.015  # шаг сетки, м
 re_v = 0.62 * (b_v * l_v * h_v) ** (1 / 3)  # эквивалетныый радиус экрана камеры
 re_z = 0.62 * (b_z * l_z * h_z) ** (1 / 3)  # эквивалетныый радиус экрана кабины
 
-koef_ekr_h_setka, koef_ekr_e_setka = 0, 0
+koef_ekr_h_setka, koef_ekr_e_setka = {}, {}
 for fr in harm.keys():
     lam = 300000000 / fr  # длина волны
     Zh = Z0 * 2 * pi * re_v / lam
     ekr_h = 0.012 * (d_v * Zh / ro) ** 0.5 * (lam / re_v) ** (1 / 3) * exp(pi * ds / (s_ - ds))
-    koef_ekr_h_setka += harm[fr][0] / ekr_h
+    koef_ekr_h_setka[fr] = ekr_h
 
     delta = 0.016 / (fr ** 0.5)
     ekr_e = 60 * pi * 1 * delta / (ro * s_ * 2.83 * (ds ** 0.5)) * exp(ds / delta)
-    koef_ekr_e_setka += harm[fr][1] / ekr_e
+    koef_ekr_e_setka[fr] = ekr_e
 
-koef_ekr_h_splosh_v = 1 / (1 + (0.66 * metal_mu * d_v / re_v))
-koef_ekr_h_splosh_z = 1 / (1 + (0.66 * metal_mu * d_z / re_z))
-koef_ekr_e_splosh = 1 / ke_metal
+koef_ekr_h_splosh_v = 1 + (0.66 * metal_mu * d_v / re_v)
+koef_ekr_h_splosh_z = 1 + (0.66 * metal_mu * d_z / re_z)
+koef_ekr_e_splosh = ke_metal
+
+k_post_ekr_e_setka = 55.45 + 20 * log(ds ** 2 * metal_sigma / s_, 10)
+k_post_ekr_h_setka = exp(pi * d_v / s_)
 
 # ШИНЫ И ОБОРУДОВАНИЕ
 
@@ -284,14 +288,12 @@ def oborud(element, v1arr, v2arr, v3, I, U, n=1, type_='FRONT', ver_='PER', ob='
             points.extend([[length+x_, -0.5*width+y_, floor+z_] for z_ in nodes_z for y_ in nodes_y for x_ in nodes_x])
     else:  # если это ТЭД
         ds = 8
-        # todo ещё ТЭДы - в [x_td1_sr]
-        nodes_x = [dx + 0.5 * r_td * np.cos(ap) for dx in [x_td1_sr, x_td1_sr+kol_par]
+        nodes_x = [dx + 0.5 * r_td * np.cos(ap) for dx in [x_td1, x_td1+kol_par, x_td2, x_td2+kol_par]
                    for ap in np.linspace(0, 2 * pi, ds)]
         nodes_z = [z_td + 0.5 * r_td * np.sin(ap) for ap in np.linspace(0, 2 * pi, ds)]
         nodes_y = [td - td_p for td in [dy_td, -dy_td] for td_p in np.linspace(-0.5 * l_td, 0.5 * l_td, 4)]
         points = [[x_, y_, z_] for z_ in nodes_z for y_ in nodes_y for x_ in nodes_x]
 
-    # разбиваем кабину на узлы
     x_cab = np.linspace(length, all_length, 40)
     y_cab = np.linspace(-0.5 * width, 0.5 * width, 40)
     minus = [[x_, y_] for y_ in y_cab for x_ in x_cab]
@@ -359,10 +361,44 @@ def field_sum_post(*arg):
 
 def full_energy(en):
     sum_h, sum_e = 0, 0
-    for en in en.values():
-        sum_h += en[0]
-        sum_e += en[1]
+    for e in en.values():
+        sum_h += e[0]
+        sum_e += e[1]
     return [sum_h, sum_e]
+
+
+def ekran(el, tp='SETKA', ver='PER'):
+    if el[1][0] > length + 0.4:
+        if ver == 'PER':
+            eg = full_energy(el[0])
+            return eg[0] * eg[1]
+        else:
+            return el[0][0] * el[0][1]
+    else:
+        if tp == 'SETKA':
+            if ver == 'PER':
+                k_h = koef_ekr_h_setka
+                k_e = koef_ekr_e_setka
+            else:
+                k_h = k_post_ekr_h_setka
+                k_e = k_post_ekr_e_setka
+        else:
+            k_e = koef_ekr_e_splosh
+            k_h = koef_ekr_h_splosh_v
+        if el[1][0] < length:
+            k_e = {f: k_e[f]*koef_ekr_e_splosh for f in k_h.keys()}\
+                if type(k_h) == dict else k_e * koef_ekr_e_splosh
+            k_h = {f: k_e[f] * koef_ekr_h_splosh_z for f in k_h.keys()} \
+                if type(k_h) == dict else k_e * koef_ekr_h_splosh_z
+
+    if ver == 'PER':
+        sum_h, sum_e = 0, 0
+        for fq in harm.keys():
+            sum_h += el[0][fq][0] / k_h[fq] if type(k_h) == dict else el[0][fq][0] / k_h
+            sum_e += el[0][fq][1] / k_e[fq] if type(k_h) == dict else el[0][fq][1] / k_e
+        return sum_h * sum_e
+    else:
+        return el[0][0] / k_h * el[0][1] / k_e
 
 
 def do_draw(h_lines, v_lines, c, type_):
@@ -428,17 +464,14 @@ def lines_ted(color, type_='FRONT'):
                    for y in [w-dy_td, w+dy_td]]
     else:
         h_lines = [[y, x-r, x+r] for y in [w-dy_td, w+dy_td]
-                   for x in [x_td1_sr, x_td1_sr + kol_par]]
-        # for x in [x_td1_sr, x_td1_sr + kol_par, x_td2_sr, x_td2_sr-kol_par]]
+                   for x in [x_td1, x_td1 + kol_par, x_td2, x_td2+kol_par]]
         v_lines = [[x+dx, y-l, y+l] for y in [w-dy_td, w+dy_td] for dx in [r, -r]
-                   for x in [x_td1_sr, x_td1_sr + kol_par]]
-        # for x in [x_td1_sr, x_td1_sr + kol_par, x_td2_sr, x_td2_sr-kol_par]]
+                   for x in [x_td1, x_td1 + kol_par, x_td2, x_td2+kol_par]]
 
     do_draw(h_lines, v_lines, color, type_)
 
 
 # TODO достаём внешнее поле из первого модуля
-
 
 def make_triang(x_arr, y_arr):
     nodes_x = [x_ for _ in y_arr for x_ in x_arr]
@@ -559,17 +592,23 @@ def visual_up_per():
     plt.suptitle(name)
     show('гарм_эл_верх')
 
-    # global gph_num
-    # gph_num += 1
-    # plt.figure(gph_num)
-    # plt.subplot(3, 1, 1)
-    # # figure_draw(, 'Без экрана')
-    # plt.subplot(3, 1, 2)
-    # # figure_draw(electric, 'Экран сетка')
-    # plt.subplot(3, 1, 3)
-    # # figure_draw(energy, 'Экран лист')
-    # plt.suptitle('Экранирование переменный ток')
-    # show('экр_пер')
+    print('Расчёт экрана...')
+    energy_setka = [ekran(el) for el in field]
+    energy_splosh = [ekran(el, tp='SPLOSH') for el in field]
+
+    gph_num += 1
+    plt.figure(gph_num)
+    plt.subplot(3, 1, 1)
+    figure_draw(energy, 'Без экрана')
+    plt.subplot(3, 1, 2)
+    figure_draw(energy_setka, 'Экран сетка')
+    plt.subplot(3, 1, 3)
+    figure_draw(energy_splosh, 'Экран лист')
+    plt.suptitle('Экранирование переменный ток')
+    show('экр_пер')
+
+    energy_chel = [el for el in field if (el[1][0] <= x_chel) and (abs(el[1][1]) <= y_chel)][-1]
+    return energy_chel
 
 
 def visual_up_post():
@@ -617,17 +656,23 @@ def visual_up_post():
     plt.suptitle('Постоянный, вид сверху')
     show('пост_верх')
 
-    # global gph_num
-    # gph_num += 1
-    # plt.figure(gph_num)
-    # plt.subplot(3, 1, 1)
-    # # figure_draw(, 'Без экрана')
-    # plt.subplot(3, 1, 2)
-    # # figure_draw(electric, 'Экран сетка')
-    # plt.subplot(3, 1, 3)
-    # # figure_draw(energy, 'Экран лист')
-    # plt.suptitle('Экранирование постоянный ток')
-    # show('экр_пост')
+    print('Расчёт экрана...')
+    energy_setka = [ekran(el, ver='POST') for el in summar]
+    energy_splosh = [ekran(el, tp='SPLOSH', ver='POST') for el in summar]
+
+    gph_num += 1
+    plt.figure(gph_num)
+    plt.subplot(3, 1, 1)
+    figure_draw(energy, 'Без экрана')
+    plt.subplot(3, 1, 2)
+    figure_draw(energy_setka, 'Экран сетка')
+    plt.subplot(3, 1, 3)
+    figure_draw(energy_splosh, 'Экран лист')
+    plt.suptitle('Экранирование постоянный ток')
+    show('экр_пост')
+
+    energy_chel = [el for el in summar if (el[1][0] <= x_chel) and (abs(el[1][1]) <= y_chel)][-1]
+    return energy_chel
 
 
 def visual_front():
@@ -694,7 +739,7 @@ def visual_front():
 
         gph_num += 1
         plt.figure(gph_num)
-        name = 'Гармоники вид спереди'
+        name = f'Гармоники вид спереди {SZ[no]} м'
         j = 0
         for f in harm.keys():
             j += 1
@@ -705,6 +750,7 @@ def visual_front():
         # plt.bar()
         plt.suptitle(name)
         show(f'гарм_{no}_м')
+
 
 
 ## РАСЧЁТ СТАТИСТИКИ ##
@@ -731,16 +777,40 @@ z_graph = floor
 
 gph_num = 0
 print('\nВид сверху.')
-visual_up_per()
-visual_up_post()
+ch_per = visual_up_per()
+ch_post = visual_up_post()
 print('\nВид спереди')
 visual_front()
 
 # TODO что-то не то с рисованием шин. Проверить их в процессе проверки оборудования.
-
 # TODO проверка как отдельно ведут все шины и все оборуд
-# TODO ТЭД правильно
-# TODO 5. экран и статистика
+
 # TODO уточнения
+
+print('\nпеременное | постоянное | общее')
+
+e_per, e_post = field_sum_per(ch_per), field_sum_post(ch_post)
+print('Поле без экрана: %.4f' % e_per, e_post, e_per+e_post)
+
+ekr_per = 0
+for fq in harm.keys():
+    ekr_per += ch_per[0][fq][0] / (koef_ekr_h_setka[fq] * koef_ekr_h_splosh_z) *\
+               ch_per[0][fq][1] / (koef_ekr_e_setka[fq] * koef_ekr_e_splosh)
+ekr_post = ch_post[0] / (k_post_ekr_h_setka * koef_ekr_h_splosh_z) *\
+           ch_post[1] / (k_post_ekr_e_setka * koef_ekr_e_splosh)
+print('\nЭкран сетка %.4f' % ekr_per, ekr_post, e_per+ekr_post)
+Dco = (e_per+ekr_post) * ti * S * p
+Dpo = Dco / b
+print('Удельная суточная доза поглощённой энергии: %.4f' % Dpo)
+
+f_per = full_energy(ch_per[0])
+ekr_per = f_per[0] / (koef_ekr_h_splosh_v * koef_ekr_h_splosh_z) * \
+          f_per[1] / (koef_ekr_e_splosh * koef_ekr_e_splosh)
+ekr_post = ch_post[0] / (koef_ekr_h_splosh_v * koef_ekr_h_splosh_z) *\
+           ch_post[1] / (koef_ekr_e_splosh * koef_ekr_e_splosh)
+print('\nЭкран сплошной %.4f' % ekr_per, ekr_post, e_per+ekr_post)
+Dco = (e_per+ekr_post) * ti * S * p
+Dpo = Dco / b
+print('Удельная суточная доза поглощённой энергии: %.4f' % Dpo)
 
 plt.show()

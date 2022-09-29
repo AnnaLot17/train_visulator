@@ -775,9 +775,9 @@ z_graph = 3
 
 gph_num = 0
 print('\nВид сверху.')
-# visual_up_per()
-# visual_up_post(z_graph)  # построение среза на высоте пола
-# visual_up_post(floor+z_td)  # построение среза на высоте ТЭД
+visual_up_per()
+visual_up_post(z_graph)  # построение среза на высоте пола
+visual_up_post(floor+z_td)  # построение среза на высоте ТЭД
 print('\nВид сбоку')
 visual_front()
 

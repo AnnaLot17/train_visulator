@@ -221,12 +221,12 @@ sh_vu_cp = [
             [(x_vu1, y_vu1 + 0.2, z_vu), (1, 0, 0)],
             [(x_vu1, y_vu2 + 0.2, z_vu), (1, 0, 0)],
             [(x_vu1 + 1, y_vu1 + 0.2, z_vu), (0, 1.4, 0)],
-            [(x_vu1+1, y_vu1 + 0.83, z_vu), (-0.6, 0, 0)],
+            [(x_vu1+1, y_vu1 + 0.83, z_vu), (-1, 0, 0)],
 
             [(x_vu2, y_vu1 + 0.2, z_vu), (-1, 0, 0)],
             [(x_vu2, y_vu2 + 0.2, z_vu), (-1, 0, 0)],
             [(x_vu2 - 1, y_vu1 + 0.2, z_vu), (0, 1.4, 0)],
-            [(x_vu2-1, y_vu1 + 0.83, z_vu), (0.6, 0, 0)]]
+            [(x_vu2-1, y_vu1 + 0.83, z_vu), (1, 0, 0)]]
 
 sh_cp_td = [
             [(x_cp2 + l_cp, y_cp, 0), (0, 0, 1.9)],
@@ -358,9 +358,9 @@ def oborud_post(element, v1arr, v2arr, v3, I, U, n=1, type_='FRONT'):
 
 def oborud_ted(v1arr, v2arr, v3, I, U, n=n_td, type_='FRONT'):
     ds = 8
-    nodes_x = [dx + 0.5 * r_td * np.cos(ap) for dx in [x_td1, x_td1+kol_par, x_td2, x_td2+kol_par]
+    nodes_x = [length + dx + 0.5 * r_td * np.cos(ap) for dx in [x_td1, x_td1+kol_par, x_td2, x_td2+kol_par]
                for ap in np.linspace(0, 2 * pi, ds)]
-    nodes_z = [z_td + 0.5 * r_td * np.sin(ap) for ap in np.linspace(0, 2 * pi, ds)]
+    nodes_z = [floor + z_td + 0.5 * r_td * np.sin(ap) for ap in np.linspace(0, 2 * pi, ds)]
     nodes_y = [td - td_p for td in [dy_td, -dy_td] for td_p in np.linspace(-0.5 * l_td, 0.5 * l_td, 4)]
     points = [[x_, y_, z_] for z_ in nodes_z for y_ in nodes_y for x_ in nodes_x]
 
@@ -372,7 +372,7 @@ def oborud_ted(v1arr, v2arr, v3, I, U, n=n_td, type_='FRONT'):
             H_ob, E_ob = 0, 0
             for p in points:
                 r = ((p[0] - x_) ** 2 + (p[1] - y_) ** 2 + (p[2] - z_) ** 2) ** 0.5
-                H_ob += I / (2 * pi)
+                H_ob += I / (2 * pi * r)
                 E_ob += U / r / len(points)
 
             for m in minus:
@@ -548,8 +548,8 @@ def triang_draw(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb
 
 
 def show(name):
-    # mng = plt.get_current_fig_manager()
-    # mng.window.state('zoomed')
+    mng = plt.get_current_fig_manager()
+    mng.window.state('zoomed')
     file_name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png"
     plt.savefig(file_name)
 
@@ -655,7 +655,12 @@ def visual_up_post(z):
     cp_f = oborud_post(cp, x_ln, y_ln, z, I_cp, U_cp, n_cp, type_='UP')
     ted_f = oborud_ted(x_ln, y_ln, z, I_td, U_td, n_td, type_='UP')
 
-    summar = field_sum_post(vu_cp, cp_td, vu_f, cp_f, ted_f)
+    if z < floor:
+        summ_inside = field_sum_post(vu_cp, cp_td, vu_f, cp_f)
+        ekran_f = [[[el[0][0] / koef_ekr_h_splosh_v, el[0][1] / koef_ekr_e_splosh], el[1]] for el in summ_inside]
+        summar = field_sum_post(ekran_f, ted_f)
+    else:
+        summar = field_sum_post(vu_cp, cp_td, vu_f, cp_f, ted_f)
     magnetic = [el[0][0] for el in summar]
     electric = [el[0][1] for el in summar]
     energy = [el[0][0]*el[0][1] for el in summar]
@@ -778,6 +783,7 @@ print('\nВид сверху.')
 visual_up_per()
 visual_up_post(z_graph)  # построение среза на высоте пола
 visual_up_post(floor+z_td)  # построение среза на высоте ТЭД
+exit()
 print('\nВид сбоку')
 visual_front()
 

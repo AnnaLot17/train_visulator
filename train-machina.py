@@ -546,8 +546,7 @@ def ekran(elm, tp='SETKA', ver='PER'):
         return [(elm[0][0] / k_h, elm[0][1] / k_e), elm[1]]
 
 
-def do_draw(h_lines, v_lines, c, type_):
-    li = '--'
+def do_draw(h_lines, v_lines, c, type_, li='solid'):
     if type_ == 'FRONT':
         for h in h_lines:
             plt.hlines(floor + h[0], -0.5 * width + h[1], -0.5 * width + h[2], colors=c, linestyles=li)
@@ -558,6 +557,15 @@ def do_draw(h_lines, v_lines, c, type_):
             plt.hlines(-0.5 * width + h[0], length + h[1], length + h[2], colors=c, linestyles=li)
         for v in v_lines:
             plt.vlines(length + v[0], -0.5 * width + v[1], -0.5 * width + v[2], colors=c, linestyles=li)
+
+
+def lines_corp(*pnt):
+    c = 'black'
+    li = 'solid'
+    plt.hlines(pnt[2]+0.1, pnt[0]+0.1, pnt[1]-0.1, colors=c, linestyles=li)
+    plt.hlines(pnt[3]-0.1, pnt[0]+0.1, pnt[1]-0.1, colors=c, linestyles=li)
+    plt.vlines(pnt[0]+0.1, pnt[2]+0.1, pnt[3]-0.1, colors=c, linestyles=li)
+    plt.vlines(pnt[1]-0.1, pnt[2]+0.1, pnt[3]-0.1, colors=c, linestyles=li)
 
 
 def lines_oborud(oborud_, color, type_='FRONT'):
@@ -595,7 +603,7 @@ def lines_shina(shina_, color, type_='FRONT'):
             if sh[1][1] != 0:
                 v_lines.append([sh[0][0], sh[0][1], sh[0][1] + sh[1][1]])
 
-    do_draw(h_lines, v_lines, color, type_)
+    do_draw(h_lines, v_lines, color, type_, li='--')
 
 
 def lines_ted(color, type_='FRONT'):
@@ -666,6 +674,7 @@ def visual_up_per():
         lines_shina(sh_gk_vu, 'c', type_='UP')
         lines_oborud(gk, 'lime', type_='UP')
         lines_oborud(tt, 'white', type_='UP')
+        lines_corp(Xmin, Xmax, Ymin, Ymax)
 
     print('Расчёт поля переменного тока.....')
     print('Расчёт поля шин...')
@@ -695,6 +704,9 @@ def visual_up_per():
     figure_draw(energy, 'Электричество')
     plt.suptitle('Переменный вид сверху')
     show('пер_верх')
+
+    plt.show()
+    exit()
 
     gph_num += 1
     plt.figure(gph_num)
@@ -740,6 +752,7 @@ def visual_up_post(z):
         lines_oborud(vu, 'aqua', type_='UP')
         lines_oborud(cp, 'indigo', type_='UP')
         lines_ted('darkblue', type_='UP')
+        lines_corp(Xmin, Xmax, Ymin, Ymax)
 
     print('Расчёт поля постоянного тока.....')
     print('Расчёт поля шин...')
@@ -845,6 +858,7 @@ def visual_front():
             lines_shina(sh_gk_vu, 'c')
             lines_oborud(gk, 'lime')
             lines_oborud(tt, 'white')
+            lines_corp([Ymax, Ymin, floor, Zmin])
     
             plt.subplot(1, 2, 2)
             triang_draw(tr_all, energy_post, 'Постоянный', y_lb='Ось z, метры')
@@ -853,6 +867,7 @@ def visual_front():
             lines_oborud(vu, 'aqua')
             lines_oborud(cp, 'indigo')
             lines_ted('darkblue')
+            lines_corp([Ymax, Ymin, floor, Zmin])
 
             plt.suptitle(name)
             show(f'энерг_{no}_м_{tp}')

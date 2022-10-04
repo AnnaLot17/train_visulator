@@ -101,7 +101,7 @@ print(ke_metal)
 
 print((ke_metal*metal_r + ke_glass*glass_r) / (metal_r + glass_r))
 
-exit()
+
 
 # ОБОРУДОВАНИЕ
 
@@ -168,32 +168,36 @@ def magnetic_calc(x_m, z_m, f_m):
     h2up = mix(h2xup, h2zup)
     hup = h1up + h2up
 
-    return hkp + hnt + hup
+    return hkp, hnt, hup
 
 
 def electric_calc(x_e, z_e, f_e):
 
     U_h = U * harm.get(f_e)[1]
 
-    e_res = U_h * (
-            log(1 + 4 * h_nt * z_e / ((x_e - xp_nt) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt)) +
-            log(1 + 4 * h_kp * z_e / ((x_e - xp_kp) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp)) +
-            log(1 + 4 * h_up * z_e / ((x_e - xp_up) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
-    )
-    return e_res
+    ekp = U_h * log(1 + 4 * h_nt * z_e / ((x_e - xp_nt) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt))
+    ent = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
+    eup = U_h * log(1 + 4 * h_up * z_e / ((x_e - xp_up) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
+
+    return ekp, ent, eup
 
 
 def energy_pass(x_e, y_e, z_e):
-    res_energy = {freq: [magnetic_calc(y_e, z_e, freq), electric_calc(y_e, z_e, freq)] for freq in harm.keys()}
+    res_energy = {}
+    for freq in harm.keys():
+        h = magnetic_calc(y_e, z_e, freq)
+        e = electric_calc(y_e, z_e, freq)
+        res_energy[freq] = (h[0]+h[1]+h[2], e[0]+e[1]+e[2], h[0]*e[0] + h[1]*e[1] *h[2]*e[2])
     return [res_energy, (x_e, y_e, z_e)]
 
 
 def full_energy(res_en):
-    sum_h, sum_e = 0, 0
+    sum_h, sum_e, sum_g = 0, 0, 0
     for en in res_en.values():
         sum_h += en[0]
         sum_e += en[1]
-    return [sum_h, sum_e]
+        sum_g += en[2]
+    return [sum_h, sum_e, sum_g]
 
 
 def ekran(ext_en):
@@ -207,7 +211,7 @@ def ekran(ext_en):
             else:
                 k_h = kh_metal
                 k_e = ke_metal
-    return [{fr: [ext_en[0][fr][0] / k_h[fr], ext_en[0][fr][1] / k_e] for fr in harm.keys()}, ext_en[1]]
+    return [{fr: [ext_en[0][fr][0] / k_h[fr], ext_en[0][fr][1] / k_e, ext_en[0][fr][2] / (k_h[fr]*k_e)] for fr in harm.keys()}, ext_en[1]]
 
 
 def ekran_post(ext_en):
@@ -220,11 +224,12 @@ def ekran_post(ext_en):
 
 
 def full_pass(f_el):
-    sum_h, sum_e = 0, 0
+    sum_h, sum_e, sum_g = 0, 0, 0
     for fr in f_el[0].keys():
         sum_h += f_el[0][fr][0]
         sum_e += f_el[0][fr][1]
-    return [sum_h, sum_e]
+        sum_g += f_el[0][fr][2]
+    return [sum_h, sum_e, sum_g]
 
 
 def visual_up():
@@ -244,7 +249,7 @@ def visual_up():
 
     magnetic = [[x_el[0] for x_el in y_list] for y_list in summar]
     electric = [[x_el[1] for x_el in y_list] for y_list in summar]
-    eneegy = [[x_el[0]*x_el[1] for x_el in y_list] for y_list in summar]
+    energy = [[x_el[2] for x_el in y_list] for y_list in summar]
 
     def do_graph(content, name_, x_lb='Ось x, метры', y_lb='Ось y, метры'):
         ct = plt.contour(x, y, content, alpha=0.75, colors='black', linestyles='dotted', levels=5)
@@ -274,7 +279,7 @@ def visual_up():
     plt.subplot(1, 3, 2)
     do_graph(electric, 'Электрическое', x_lb='Ось x, метры', y_lb='Ось y, метры')
     plt.subplot(1, 3, 3)
-    do_graph(eneegy, 'Энергия', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    do_graph(energy, 'Энергия', x_lb='Ось x, метры', y_lb='Ось y, метры')
 
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
@@ -308,12 +313,12 @@ def visual_front():
 
     every_f = [[energy_pass(x_chel, y_, z_) for y_ in y] for z_ in z]
     all_field = [[full_energy(x_el[0]) for x_el in y_list] for y_list in every_f]
-    summar = [[x_el[0] * x_el[1] for x_el in y_list] for y_list in all_field]
+    summar = [[x_el[2] for x_el in y_list] for y_list in all_field]
 
     plt.figure(2)
     b = 10 ** (len(str(round(np.amin(summar)))) - 1)  # для правильного отображения линий
     ct = plt.contour(y, z, summar, alpha=0.75, colors='black', linestyles='dotted',
-                     levels=[b, 2*b, 5*b, 7*b, 10*b, 20*b, 50*b, 100*b])
+                     levels=[b, 2*b, 5*b, 7*b, 10*b, 20*b, 50*b, 100*b, 200*b, 500*b, 700*b])
     plt.clabel(ct, fontsize=10)
     plt.imshow(summar, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
     plt.colorbar()
@@ -506,7 +511,7 @@ def visual_up_locomotive(ext_f):
 
     magnetic = [[x_el[0] for x_el in y_list] for y_list in inside]
     electric = [[x_el[1] for x_el in y_list] for y_list in inside]
-    summar = [[x_el[0]*x_el[1] for x_el in y_list] for y_list in inside]
+    energy = [[x_el[2] for x_el in y_list] for y_list in inside]
 
 
     plt.figure(3)
@@ -519,7 +524,7 @@ def visual_up_locomotive(ext_f):
     graph_do(electric, 'Электрическое', x_lb='Ось x, метры')
     plt.subplot(1, 3, 3)
     kab_lines_up()
-    graph_do(summar, 'Общее', x_lb='Ось x, метры',)
+    graph_do(energy, 'Общее', x_lb='Ось x, метры',)
 
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
@@ -782,12 +787,12 @@ print('\nБез электровоза')
 cont_f_up = visual_up()
 
 print('\nВид спереди')
-# cont_f_front = visual_front()
+cont_f_front = visual_front()
 
 print('\nПоле в кабине сверху')
 visual_up_locomotive(cont_f_up)
 visual_up_post()
-exit()
+
 
 print('\nПоле в кабине спереди')
 visual_front_locomotive(cont_f_front)

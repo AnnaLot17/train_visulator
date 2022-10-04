@@ -70,6 +70,8 @@ glass_sigma = 10 ** -12  # удельная проводимость стекл�
 v_kab = length * width * height
 metal_r = (v_kab * 3 / 4 / pi) ** 1 / 3
 glass_r = ((2.86+0.8) * 3 / 4 / pi) ** 1 / 3
+print(metal_r)
+print(glass_r)
 
 kh_glass = {frq: 10 * log(1 + (glass_sigma * 2 * pi * frq * glass_mu * glass_r * glass_t / 2) ** 2, 10)
                  for frq in harm.keys()}
@@ -90,6 +92,16 @@ ke_metal = 20 * log(60 * pi * metal_t * metal_sigma, 10)
 
 kh_post = 1 + (0.66 * metal_mu * metal_t / metal_r)
 ke_post = ke_metal
+
+print('kh_metal')
+for f, k in  kh_metal.items():
+    print(f'{f}: {k}')
+print('ke_metal')
+print(ke_metal)
+
+print((ke_metal*metal_r + ke_glass*glass_r) / (metal_r + glass_r))
+
+exit()
 
 # ОБОРУДОВАНИЕ
 
@@ -770,11 +782,12 @@ print('\nБез электровоза')
 cont_f_up = visual_up()
 
 print('\nВид спереди')
-cont_f_front = visual_front()
+# cont_f_front = visual_front()
 
 print('\nПоле в кабине сверху')
 visual_up_locomotive(cont_f_up)
 visual_up_post()
+exit()
 
 print('\nПоле в кабине спереди')
 visual_front_locomotive(cont_f_front)

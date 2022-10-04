@@ -88,7 +88,7 @@ kh_metal = {frq: 10 * log(1 + (metal_sigma * 2 * pi * frq * metal_mu * metal_r *
 ke_metal = 20 * log(60 * pi * metal_t * metal_sigma, 10)
 
 
-kh_post = 1 / (1 + (0.66 * metal_mu * metal_t / metal_r))
+kh_post = 1 + (0.66 * metal_mu * metal_t / metal_r)
 ke_post = ke_metal
 
 # ОБОРУДОВАНИЕ
@@ -238,6 +238,7 @@ def visual_up():
         ct = plt.contour(x, y, content, alpha=0.75, colors='black', linestyles='dotted', levels=5)
         plt.clabel(ct, fontsize=10)
         plt.imshow(content, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95)
+        plt.colorbar()
 
         for delta_y in [xp_kp, xp_up, xp_nt]:
             plt.hlines(delta_y, Xmin, Xmax, color='black', linewidth=2)
@@ -265,7 +266,7 @@ def visual_up():
 
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+   #  mng.window.state('zoomed')
 
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
@@ -317,7 +318,7 @@ def visual_front():
     plt.title('Вид сбоку')
 
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+   #  mng.window.state('zoomed')
 
     name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_вид сбоку.png"
     plt.savefig(name)
@@ -456,9 +457,9 @@ def ted_lines_front():
 def triang_do(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='Ось y, метры', lev=5):
     plt.axis('equal')
     plt.tricontourf(triangulation, scalar_, cmap=cmap)
+    plt.colorbar()
     tcf = plt.tricontour(triangulation, scalar_, alpha=0.75, colors='black', linestyles='dotted', levels=lev)
     plt.clabel(tcf, fontsize=10)
-    plt.colorbar()
 
     plt.xlabel(x_lb)
     plt.ylabel(y_lb)
@@ -481,7 +482,7 @@ def visual_up_locomotive(ext_f):
     y_ln = np.linspace(Ymin, Ymax, len(inside), endpoint=True)
 
     def graph_do(znach, name_, x_lb='', y_lb=''):
-        ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='white', linestyles='dotted', levels=5)
+        ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
         plt.clabel(ct, fontsize=10)
         plt.imshow(znach, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95, norm=colors.LogNorm())
         plt.colorbar()
@@ -510,7 +511,7 @@ def visual_up_locomotive(ext_f):
 
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+   #  mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
 
@@ -556,7 +557,7 @@ def visual_up_post():
 
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+   #  mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     print('График построен.')
@@ -578,7 +579,7 @@ def visual_front_locomotive(ext_f):
     fr_kab_lines()
     plt.title(name)
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+   #  mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     Ymin, Ymax = -0.5*width, 0.5*width
@@ -618,7 +619,7 @@ def visual_front_locomotive(ext_f):
     kab_lines_front()
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+   #  mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     plt.figure(7)
@@ -631,11 +632,12 @@ def visual_front_locomotive(ext_f):
         data = [[el[0][fr][0] for el in lst]for lst in kanina]
         chel_harm_h.append(data[chel_z][chel_y])
         graph_do(data, '', y_lb=str(fr))
+        kab_lines_front()
     plt.subplot(3, 3, 9)
     plt.bar(range(0, len(harm.keys())), chel_harm_h)
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+   #  mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     plt.figure(8)
@@ -653,7 +655,7 @@ def visual_front_locomotive(ext_f):
     plt.suptitle(name)
 
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+   #  mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     print('Гармоники магнитного поля для человека', chel_harm_h,
@@ -697,7 +699,7 @@ def visual_front_post():
 
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+   #  mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     def graph_do(znach, name_, x_lb='', y_lb='', lev=5):
@@ -739,7 +741,7 @@ def visual_front_post():
     plt.suptitle(name)
 
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+   #  mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     print('График построен.')

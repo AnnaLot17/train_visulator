@@ -4,6 +4,8 @@ import matplotlib.tri as tri
 import numpy as np
 from datetime import datetime
 import matplotlib.colors as colors
+from shapely.geometry import Polygon, LineString, Point
+
 plt.style.use('seaborn-white')
 cmap = 'YlOrRd'
 
@@ -56,8 +58,23 @@ all_length = 15.2  # длина всего локомотива
 width = 2.8  # ширина кабины
 height = 2.6  # высота кабины
 floor = 2  # расстояние от земли до дна кабины
-bor = [0.27, 0.6, 1.2]  # узлы окна
+bor = [0.27, 0.6, -1.2, 1.2, 3.5, 4.2]  # узлы окна
+sbor = [0.15, 0.95, 3.5, 4.2]  # узлы для бокового окна
 z_chel = floor + 0.7  # где находится человек по оси z
+
+
+frontWindleft = Polygon([(bor[0], bor[2], bor[4]),
+                         (bor[1], bor[2], bor[5]),
+                         (bor[1], -0.22, bor[5]),
+                         (bor[0], -0.22, bor[4])])
+
+frontWindright = Polygon([(bor[0], 0.22, bor[4]),
+                          (bor[1], 0.22, bor[5]),
+                          (bor[1], bor[3], bor[5]),
+                          (bor[0], bor[3], bor[4])])
+
+min_up = Point(0.5*width, sbor[3]).distance(Point(xp_up, h_up))
+max_up = Point(0.5*width, sbor[2]).distance(Point(xp_up, h_up))
 
 metal_mu = 1000  # относительная магнитная проницаемость стали
 glass_mu = 0.99  # относительная магнитная проницаемость стекла
@@ -75,12 +92,9 @@ glass_r = ((2.86+0.8) * 3 / 4 / pi) ** 1 / 3
 kh_glass = {frq: 1 for frq in harm.keys()}
 ke_glass = 1
 
-
-# TODo уточнить эти значения
-kh_metal = {frq: 10 * log(1 + (metal_sigma * 2 * pi * frq * metal_mu * metal_r * metal_t / 2) ** 2, 10)
-                 for frq in harm.keys()}
+kh_metal = {frq: 20 * log(1 + (metal_sigma * 2 * pi * frq * metal_mu * metal_r * metal_t), 10)
+            for frq in harm.keys()}
 ke_metal = 20 * log(60 * pi * metal_t * metal_sigma, 10)
-
 
 kh_post = 1 + (0.66 * metal_mu * metal_t / metal_r)
 ke_post = ke_metal
@@ -151,7 +165,7 @@ def magnetic_calc(x_m, z_m, f_m):
     h2up = mix(h2xup, h2zup)
     hup = h1up + h2up
 
-    return hkp, hnt, hup
+    return [hkp, hnt, hup]
 
 
 def electric_calc(x_e, z_e, f_e):
@@ -162,7 +176,7 @@ def electric_calc(x_e, z_e, f_e):
     ent = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
     eup = U_h * log(1 + 4 * h_up * z_e / ((x_e - xp_up) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
 
-    return ekp, ent, eup
+    return [ekp, ent, eup]
 
 
 def full_field(res_en):
@@ -174,25 +188,33 @@ def full_field(res_en):
     return [sum_h, sum_e, sum_g]
 
 
-
-
 # TODO переделать
-def ekran(ext_en):
-    return ext_en
+def ekran(en):
 
+    x, y, z = en[1]
+    kppth = LineString([(x, y, z), (x, xp_kp, h_kp)])
+    ntpth = LineString([(x, y, z), (x, xp_nt, h_nt)])
 
-def ekran_back(ext_en):
-    k_h = {fr: 1 for fr in harm.keys()}
-    k_e = 1
-    if (ext_en[1][2] >= floor) and (ext_en[1][2] < floor+height):
-        if abs(ext_en[1][1]) <= 0.5*width:
-            if (ext_en[1][0] > bor[1]) and (ext_en[1][0] < bor[1]) and (abs(ext_en[1][1]) <= bor[2]):
-                k_h = kh_glass
-                k_e = ke_glass
-            else:
-                k_h = kh_metal
-                k_e = ke_metal
-    return [{fr: [ext_en[0][fr][0] / k_h[fr], ext_en[0][fr][1] / k_e, ext_en[0][fr][2] / (k_h[fr]*k_e)] for fr in harm.keys()}, ext_en[1]]
+    kp_pass = kppth.intersects(frontWindleft) or kppth.intersects(frontWindright)
+    nt_pass = ntpth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
+
+    up_dist = Point(y, z).distance(Point(xp_up, h_up))
+    up_pass = (up_dist >= min_up) and (up_dist <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
+
+    if (abs(y) <= 0.5*width) and (z >= floor) and (z <= floor+height):
+        if not kp_pass:
+            for f in en[0].keys():
+                en[0][f][0][0] /= kh_metal[f]
+                en[0][f][1][0] /= ke_metal
+        if not nt_pass:
+            for f in en[0].keys():
+                en[0][f][0][1] /= kh_metal[f]
+                en[0][f][1][1] /= ke_metal
+        if not up_pass:
+            for f in en[0].keys():
+                en[0][f][0][2] /= kh_metal[f]
+                en[0][f][1][2] /= ke_metal
+    return en
 
 
 def ekran_post(ext_en):
@@ -215,8 +237,8 @@ def visual_up():
     x = np.linspace(Xmin, Xmax, dis)
     y = np.linspace(Ymin, Ymax, dis)
 
-    every_f = [[({fr: (magnetic_calc(x_, z_graph, fr), electric_calc(x_, z_graph, fr)) for fr in harm.keys()},
-                 (x_, y_, z_graph)) for y_ in y] for x_ in x]
+    every_f = [[[{fr: [magnetic_calc(y_, z_graph, fr), electric_calc(y_, z_graph, fr)] for fr in harm.keys()},
+                 (x_, y_, z_graph)] for x_ in x] for y_ in y]
 
     summar = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
 
@@ -376,13 +398,18 @@ def kab_lines_up():
     plt.vlines(x_chel+d+0.05, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
     plt.vlines(x_chel+d+0.10, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
 
-    plt.vlines(bor[0], bor[2], -bor[2], colors='white', linestyles='--')
-    plt.vlines(bor[1], bor[2], -bor[2], colors='white', linestyles='--')
+    plt.vlines(bor[0], bor[2], -0.22, colors='white', linestyles='--')
+    plt.vlines(bor[1], bor[2], -0.22, colors='white', linestyles='--')
     plt.hlines(bor[2], bor[0], bor[1], colors='white', linestyles='--')
-    plt.hlines(-bor[2], bor[0], bor[1], colors='white', linestyles='--')
+    plt.hlines(-0.22, bor[0], bor[1], colors='white', linestyles='--')
+
+    plt.vlines(bor[0], 0.22, bor[3], colors='white', linestyles='--')
+    plt.vlines(bor[1], 0.22, bor[3], colors='white', linestyles='--')
+    plt.hlines(0.22, bor[0], bor[1], colors='white', linestyles='--')
+    plt.hlines(bor[3], bor[0], bor[1], colors='white', linestyles='--')
 
     plt.plot(np.array([0.01, bor[0]]), np.array([0, bor[2]]), c='white', linestyle='--')
-    plt.plot(np.array([0.01, bor[0]]), np.array([0, -bor[2]]), c='white', linestyle='--')
+    plt.plot(np.array([0.01, bor[0]]), np.array([0, bor[3]]), c='white', linestyle='--')
 
     plt.hlines(0.5*width-0.01, 0, length, colors='white', linestyles='--')
     plt.hlines(-0.5*width+0.01, 0, length, colors='white', linestyles='--')
@@ -467,8 +494,8 @@ def visual_up_locomotive(ext_f):
     Ymax = -0.5 * width
     Ymin = -Ymax
 
-    inside = [[full_field(ekran(el)) for el in x_list if abs(el[1][1]) <= 0.5 * width]
-              for x_list in ext_f if (x_list[0][1][0] >= Xmin) and (x_list[0][1][0] <= Xmax)]
+    inside = [[full_field(ekran(el)) for el in y_list if (el[1][0] >= Xmin) and (el[1][0] <= Xmax)]
+              for y_list in ext_f if abs(y_list[0][1][1]) <= 0.5 * width]
 
     x_ln = np.linspace(Xmin, Xmax, len(inside[0]), endpoint=True)
     y_ln = np.linspace(Ymin, Ymax, len(inside), endpoint=True)
@@ -641,6 +668,7 @@ def visual_front_locomotive(ext_f):
         data = [[sum(el[0][fr][1]) for el in lst]for lst in kabina]
         chel_harm_e.append(data[chel_z][chel_y])
         graph_do(data, '', y_lb=str(fr))
+        kab_lines_front()
     plt.subplot(3, 3, 9)
     plt.bar(range(0, len(harm.keys())), chel_harm_e)
     plt.suptitle(name)
@@ -757,21 +785,19 @@ print(f'Высота среза: {z_graph} метров')
 
 ## ПОСТРОЕНИЕ ГРАФИКА ##
 
-# TODO проверить на WIN что правильно чертит вид сверху
 print('\nБез электровоза')
-# cont_f_up = visual_up()
+cont_f_up = visual_up()
 
 print('\nВид спереди')
-# cont_f_front = visual_front()
+cont_f_front = visual_front()
 
 print('\nПоле в кабине сверху')
-# visual_up_locomotive(cont_f_up)
+visual_up_locomotive(cont_f_up)
 # visual_up_post()
 
 print('\nПоле в кабине спереди')
-# visual_front_locomotive(cont_f_front)
+visual_front_locomotive(cont_f_front)
 # visual_front_post()
-
 
 chel_f_per = [{fr: (magnetic_calc(y_chel, floor+0.7, fr), electric_calc(y_chel, floor+0.7, fr)) for fr in harm.keys()},
               (x_chel, y_chel, floor+0.7)]

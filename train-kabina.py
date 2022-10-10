@@ -17,8 +17,8 @@ I_ted = 880  # сила тока в ТЭД, А
 U_ted = 1950  # напряжение в ТЭД, В
 
 # СТАТИСТИЧЕСКИЕ ДАННЫЕ
-x_chel = 0.9  # положение человека по оси х
-y_chel = 1  # положение человека по оси y
+x_chel = 1  # положение человека по оси х
+y_chel = 0.9  # положение человека по оси y
 a = 1.75  # высота человека метры
 b = 80  # масса человека килограммы
 ti = 1  # длительность пребывания работника на рабочем месте, часов
@@ -70,21 +70,13 @@ glass_sigma = 10 ** -12  # удельная проводимость стекл�
 v_kab = length * width * height
 metal_r = (v_kab * 3 / 4 / pi) ** 1 / 3
 glass_r = ((2.86+0.8) * 3 / 4 / pi) ** 1 / 3
-print(metal_r)
-print(glass_r)
 
-kh_glass = {frq: 10 * log(1 + (glass_sigma * 2 * pi * frq * glass_mu * glass_r * glass_t / 2) ** 2, 10)
-                 for frq in harm.keys()}
-ke_glass = 20 * log(60 * pi * glass_t * glass_sigma, 10)
-# если числа очень маленькие, Питон считает их равными 0 и вызывает ошибку.
-# поэтому, если эффект экранирования крайне низкий - считаем, что экрана вообще нет
-for f in kh_glass.keys():
-    if kh_glass[f] <= 0:
-        kh_glass[f] = 1
-if ke_glass <= 0:
-    ke_glass = 1
+# так как значения очень маленькие - считаем, что там где стекло, экранирования нет
+kh_glass = {frq: 1 for frq in harm.keys()}
+ke_glass = 1
 
 
+# TODo уточнить эти значения
 kh_metal = {frq: 10 * log(1 + (metal_sigma * 2 * pi * frq * metal_mu * metal_r * metal_t / 2) ** 2, 10)
                  for frq in harm.keys()}
 ke_metal = 20 * log(60 * pi * metal_t * metal_sigma, 10)
@@ -92,15 +84,6 @@ ke_metal = 20 * log(60 * pi * metal_t * metal_sigma, 10)
 
 kh_post = 1 + (0.66 * metal_mu * metal_t / metal_r)
 ke_post = ke_metal
-
-print('kh_metal')
-for f, k in  kh_metal.items():
-    print(f'{f}: {k}')
-print('ke_metal')
-print(ke_metal)
-
-print((ke_metal*metal_r + ke_glass*glass_r) / (metal_r + glass_r))
-
 
 
 # ОБОРУДОВАНИЕ
@@ -182,25 +165,23 @@ def electric_calc(x_e, z_e, f_e):
     return ekp, ent, eup
 
 
-def energy_pass(x_e, y_e, z_e):
-    res_energy = {}
-    for freq in harm.keys():
-        h = magnetic_calc(y_e, z_e, freq)
-        e = electric_calc(y_e, z_e, freq)
-        res_energy[freq] = (h[0]+h[1]+h[2], e[0]+e[1]+e[2], h[0]*e[0] + h[1]*e[1] *h[2]*e[2])
-    return [res_energy, (x_e, y_e, z_e)]
-
-
-def full_energy(res_en):
+def full_field(res_en):
     sum_h, sum_e, sum_g = 0, 0, 0
-    for en in res_en.values():
-        sum_h += en[0]
-        sum_e += en[1]
-        sum_g += en[2]
+    for en in res_en[0].values():
+        sum_h += sum(en[0])
+        sum_e += sum(en[1])
+        sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2]
     return [sum_h, sum_e, sum_g]
 
 
+
+
+# TODO переделать
 def ekran(ext_en):
+    return ext_en
+
+
+def ekran_back(ext_en):
     k_h = {fr: 1 for fr in harm.keys()}
     k_e = 1
     if (ext_en[1][2] >= floor) and (ext_en[1][2] < floor+height):
@@ -223,15 +204,6 @@ def ekran_post(ext_en):
     return [[ext_en[0][0] / k_h, ext_en[0][1] / k_e], ext_en[1]]
 
 
-def full_pass(f_el):
-    sum_h, sum_e, sum_g = 0, 0, 0
-    for fr in f_el[0].keys():
-        sum_h += f_el[0][fr][0]
-        sum_e += f_el[0][fr][1]
-        sum_g += f_el[0][fr][2]
-    return [sum_h, sum_e, sum_g]
-
-
 def visual_up():
     print('График строится..................')
 
@@ -240,12 +212,13 @@ def visual_up():
     Ymax = -1 * 0.5 * width * 1.3
     Ymin = xp_up * 1.15
 
-    x = np.linspace(Xmin, Xmax, dis, endpoint=True)
-    y = np.linspace(Ymin, Ymax, dis, endpoint=True)
+    x = np.linspace(Xmin, Xmax, dis)
+    y = np.linspace(Ymin, Ymax, dis)
 
-    every_f = [[energy_pass(x_, y_, z_graph) for x_ in x] for y_ in y]
+    every_f = [[({fr: (magnetic_calc(x_, z_graph, fr), electric_calc(x_, z_graph, fr)) for fr in harm.keys()},
+                 (x_, y_, z_graph)) for y_ in y] for x_ in x]
 
-    summar = [[full_energy(x_el[0]) for x_el in y_list] for y_list in every_f]
+    summar = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
 
     magnetic = [[x_el[0] for x_el in y_list] for y_list in summar]
     electric = [[x_el[1] for x_el in y_list] for y_list in summar]
@@ -308,11 +281,13 @@ def visual_front():
     Zmax = 0.1
     Zmin = max(h_kp, h_nt, h_up) * 1.1
 
-    y = np.linspace(Ymin, Ymax, dis, endpoint=True)
-    z = np.linspace(Zmin, Zmax, dis, endpoint=True)
+    y = np.linspace(Ymin, Ymax, dis)
+    z = np.linspace(Zmin, Zmax, dis)
 
-    every_f = [[energy_pass(x_chel, y_, z_) for y_ in y] for z_ in z]
-    all_field = [[full_energy(x_el[0]) for x_el in y_list] for y_list in every_f]
+    every_f = [[({fr: (magnetic_calc(y_, z_, fr), electric_calc(y_, z_, fr)) for fr in harm.keys()},
+                 (x_chel, y_, z_)) for y_ in y] for z_ in z]
+
+    all_field = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
     summar = [[x_el[2] for x_el in y_list] for y_list in all_field]
 
     plt.figure(2)
@@ -492,11 +467,15 @@ def visual_up_locomotive(ext_f):
     Ymax = -0.5 * width
     Ymin = -Ymax
 
-    inside = [[full_pass(ekran(x_el)) for x_el in y_list if (x_el[1][0] >= Xmin) and (x_el[1][0] <= Xmax)]
-              for y_list in ext_f if abs(y_list[0][1][1]) <= 0.5 * width]
+    inside = [[full_field(ekran(el)) for el in x_list if abs(el[1][1]) <= 0.5 * width]
+              for x_list in ext_f if (x_list[0][1][0] >= Xmin) and (x_list[0][1][0] <= Xmax)]
 
     x_ln = np.linspace(Xmin, Xmax, len(inside[0]), endpoint=True)
     y_ln = np.linspace(Ymin, Ymax, len(inside), endpoint=True)
+
+    magnetic = [[x_el[0] for x_el in y_list] for y_list in inside]
+    electric = [[x_el[1] for x_el in y_list] for y_list in inside]
+    energy = [[x_el[2] for x_el in y_list] for y_list in inside]
 
     def graph_do(znach, name_, x_lb='', y_lb=''):
         ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
@@ -508,11 +487,6 @@ def visual_up_locomotive(ext_f):
         plt.ylabel(y_lb)
 
         plt.title(name_)
-
-    magnetic = [[x_el[0] for x_el in y_list] for y_list in inside]
-    electric = [[x_el[1] for x_el in y_list] for y_list in inside]
-    energy = [[x_el[2] for x_el in y_list] for y_list in inside]
-
 
     plt.figure(3)
     name = 'Вид сверху кабина переменное экран'
@@ -585,9 +559,8 @@ def visual_front_locomotive(ext_f):
     Zmin, Zmax = floor+height+1, 0.1
 
     ekran_ = [[ekran(y_el) for y_el in z_list if abs(y_el[1][1]) <= Ymax] for z_list in ext_f
-               if z_list[0][1][2] < Zmin]
-    summar = [[full_pass(x_el) for x_el in y_list] for y_list in ekran_]
-    energy = [[x_el[0]*x_el[1] for x_el in y_list] for y_list in summar]
+              if z_list[0][1][2] < Zmin]
+    energy = [[full_field(x_el)[2] for x_el in y_list] for y_list in ekran_]
 
     plt.figure(5)
     name = 'Вид cпереди с экраном. Энергия.'
@@ -601,12 +574,17 @@ def visual_front_locomotive(ext_f):
 
     Ymin, Ymax = -0.5*width, 0.5*width
     Zmin, Zmax = floor+height, floor
-    kanina = [[y_el for y_el in z_list if abs(y_el[1][1]) <= Ymax] for z_list in ekran_
+    kabina = [[y_el for y_el in z_list if abs(y_el[1][1]) <= Ymax] for z_list in ekran_
                 if (z_list[0][1][2] > Zmax) and (z_list[0][1][2] < Zmin)]
-    y_ln = np.linspace(Ymin, Ymax, len(kanina[0]), endpoint=True)
-    z_ln = np.linspace(Zmin, Zmax, len(kanina), endpoint=True)
+    y_ln = np.linspace(Ymin, Ymax, len(kabina[0]), endpoint=True)
+    z_ln = np.linspace(Zmin, Zmax, len(kabina), endpoint=True)
     chel_y = np.where(y_ln == max([y_ for y_ in y_ln if y_ <= y_chel]))[0][0]
     chel_z = np.where(z_ln == max([z_ for z_ in z_ln if z_ <= z_chel]))[0][0]
+
+    summar = [[full_field(x_el) for x_el in y_list] for y_list in kabina]
+    magnetic = [[x_el[0] for x_el in y_list] for y_list in summar]
+    electric = [[x_el[1] for x_el in y_list] for y_list in summar]
+    energy = [[x_el[0]*x_el[1] for x_el in y_list] for y_list in summar]
 
     def graph_do(znach, name_, x_lb='', y_lb=''):
         ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
@@ -618,10 +596,6 @@ def visual_front_locomotive(ext_f):
         plt.ylabel(y_lb)
         plt.title(name_)
 
-    summar = [[full_pass(x_el) for x_el in y_list] for y_list in kanina]
-    magnetic = [[x_el[0] for x_el in y_list] for y_list in summar]
-    electric = [[x_el[1] for x_el in y_list] for y_list in summar]
-    energy = [[x_el[0]*x_el[1] for x_el in y_list] for y_list in summar]
 
     plt.figure(6)
     name = 'Cпереди кабина переменное с экраном'
@@ -646,7 +620,7 @@ def visual_front_locomotive(ext_f):
     for fr in harm.keys():
         i += 1
         plt.subplot(3, 3, i)
-        data = [[el[0][fr][0] for el in lst]for lst in kanina]
+        data = [[sum(el[0][fr][0]) for el in lst]for lst in kabina]
         chel_harm_h.append(data[chel_z][chel_y])
         graph_do(data, '', y_lb=str(fr))
         kab_lines_front()
@@ -664,7 +638,7 @@ def visual_front_locomotive(ext_f):
     for fr in harm.keys():
         i += 1
         plt.subplot(3, 3, i)
-        data = [[el[0][fr][1] for el in lst]for lst in kanina]
+        data = [[sum(el[0][fr][1]) for el in lst]for lst in kabina]
         chel_harm_e.append(data[chel_z][chel_y])
         graph_do(data, '', y_lb=str(fr))
     plt.subplot(3, 3, 9)
@@ -783,28 +757,28 @@ print(f'Высота среза: {z_graph} метров')
 
 ## ПОСТРОЕНИЕ ГРАФИКА ##
 
+# TODO проверить на WIN что правильно чертит вид сверху
 print('\nБез электровоза')
-cont_f_up = visual_up()
+# cont_f_up = visual_up()
 
 print('\nВид спереди')
-cont_f_front = visual_front()
+# cont_f_front = visual_front()
 
 print('\nПоле в кабине сверху')
-visual_up_locomotive(cont_f_up)
-visual_up_post()
-
+# visual_up_locomotive(cont_f_up)
+# visual_up_post()
 
 print('\nПоле в кабине спереди')
-visual_front_locomotive(cont_f_front)
-visual_front_post()
+# visual_front_locomotive(cont_f_front)
+# visual_front_post()
 
-chel_f_per = energy_pass(x_chel, y_chel, floor+0.7)
-no_ekran_per = full_pass(chel_f_per)[0]*full_pass(chel_f_per)[1]
+
+chel_f_per = [{fr: (magnetic_calc(y_chel, floor+0.7, fr), electric_calc(y_chel, floor+0.7, fr)) for fr in harm.keys()},
+              (x_chel, y_chel, floor+0.7)]
+no_ekran_per = full_field(chel_f_per)[2]
 print('\nПеременное поле без экрана: %.4f' % no_ekran_per)
 
-
-ekran_per_f = full_pass(ekran(chel_f_per))
-ekran_per = ekran_per_f[0]*ekran_per_f[1]
+ekran_per = full_field(ekran(chel_f_per))[2]
 print('\nПерменное поле с экраном %.4f' % ekran_per)
 Dco = ekran_per * ti * S * p
 Dpo = Dco / b

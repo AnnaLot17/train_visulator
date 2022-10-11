@@ -278,7 +278,7 @@ def visual_up():
 
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-   #  mng.window.state('zoomed')
+    mng.window.state('zoomed')
 
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
@@ -332,7 +332,7 @@ def visual_front():
     plt.title('Вид сбоку')
 
     mng = plt.get_current_fig_manager()
-   #  mng.window.state('zoomed')
+    mng.window.state('zoomed')
 
     name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_вид сбоку.png"
     plt.savefig(name)
@@ -529,7 +529,7 @@ def visual_up_locomotive(ext_f):
 
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-   #  mng.window.state('zoomed')
+    mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
 
@@ -575,7 +575,7 @@ def visual_up_post():
 
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-   #  mng.window.state('zoomed')
+    mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     print('График построен.')
@@ -596,7 +596,7 @@ def visual_front_locomotive(ext_f):
     fr_kab_lines()
     plt.title(name)
     mng = plt.get_current_fig_manager()
-   #  mng.window.state('zoomed')
+    mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     Ymin, Ymax = -0.5*width, 0.5*width
@@ -637,7 +637,7 @@ def visual_front_locomotive(ext_f):
     kab_lines_front()
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-   #  mng.window.state('zoomed')
+    mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     plt.figure(7)
@@ -655,7 +655,7 @@ def visual_front_locomotive(ext_f):
     plt.bar(range(0, len(harm.keys())), chel_harm_h)
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-   #  mng.window.state('zoomed')
+    mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     plt.figure(8)
@@ -674,7 +674,7 @@ def visual_front_locomotive(ext_f):
     plt.suptitle(name)
 
     mng = plt.get_current_fig_manager()
-   #  mng.window.state('zoomed')
+
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     print('Гармоники магнитного поля для человека', chel_harm_h,
@@ -718,7 +718,7 @@ def visual_front_post():
 
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
-   #  mng.window.state('zoomed')
+    mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     def graph_do(znach, name_, x_lb='', y_lb='', lev=5):
@@ -760,7 +760,7 @@ def visual_front_post():
     plt.suptitle(name)
 
     mng = plt.get_current_fig_manager()
-   #  mng.window.state('zoomed')
+    mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
     print('График построен.')
@@ -793,11 +793,11 @@ cont_f_front = visual_front()
 
 print('\nПоле в кабине сверху')
 visual_up_locomotive(cont_f_up)
-# visual_up_post()
+visual_up_post()
 
 print('\nПоле в кабине спереди')
 visual_front_locomotive(cont_f_front)
-# visual_front_post()
+visual_front_post()
 
 chel_f_per = [{fr: (magnetic_calc(y_chel, floor+0.7, fr), electric_calc(y_chel, floor+0.7, fr)) for fr in harm.keys()},
               (x_chel, y_chel, floor+0.7)]

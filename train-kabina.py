@@ -19,12 +19,15 @@ I_ted = 880  # сила тока в ТЭД, А
 U_ted = 1950  # напряжение в ТЭД, В
 
 # СТАТИСТИЧЕСКИЕ ДАННЫЕ
-x_chel = 1  # положение человека по оси х
+x_chel = 0.9  # положение человека по оси х
 y_chel = 0.9  # положение человека по оси y
+floor = 2  # расстояние от земли до дна кабины
+z_chair = floor + 1.2  # сидушка стула
+z_chel = floor + 1.5  # где находится человек по оси z
 a = 1.75  # высота человека метры
 b = 80  # масса человека килограммы
 ti = 1  # длительность пребывания работника на рабочем месте, часов
-z_graph = 2  # высота среза
+z_graph = z_chel  # высота среза
 
 # КОНСТАНТЫ
 
@@ -43,7 +46,7 @@ harm = {50: [1, 1],
 xp = 0.760  # m - половина расстояния между рельсами
 xp_kp = 0  # m - расстояние от центра между рельсами до КП (если левее центра - поставить минус)
 xp_nt = 0  # m - расстояние от центра между рельсами до НТ (если левее центра - поставить минус)
-xp_up = 3.7  # m - расстояние от центра между рельсами до УП
+xp_up = -3.7  # m - расстояние от центра между рельсами до УП
 d_kp = 12.81 / 1000  # mm
 d_nt = 12.5 / 1000  # mm
 d_up = 17.5 / 1000  # mm
@@ -57,10 +60,10 @@ length = 1.3  # длина кабины
 all_length = 15.2  # длина всего локомотива
 width = 2.8  # ширина кабины
 height = 2.6  # высота кабины
-floor = 2  # расстояние от земли до дна кабины
-bor = [0.27, 0.6, -1.2, 1.2, 3.5, 4.2]  # узлы окна
-sbor = [0.15, 0.95, 3.5, 4.2]  # узлы для бокового окна
-z_chel = floor + 0.7  # где находится человек по оси z
+# min_x, max_x, min_y, max_y, min_z, max_z
+bor = [0.2, 0.6, -1.2, 1.2, floor+1.5, floor+2.2]  # узлы окна
+# min_x, max_x, min_z, max_z
+sbor = [0.3, 1, floor+1.5, floor+2.2]  # узлы для бокового окна
 
 
 frontWindleft = Polygon([(bor[0], bor[2], bor[4]),
@@ -73,8 +76,14 @@ frontWindright = Polygon([(bor[0], 0.22, bor[4]),
                           (bor[1], bor[3], bor[5]),
                           (bor[0], bor[3], bor[4])])
 
-min_up = Point(0.5*width, sbor[3]).distance(Point(xp_up, h_up))
-max_up = Point(0.5*width, sbor[2]).distance(Point(xp_up, h_up))
+min_nt = Point(0.5*width, sbor[3]).distance(Point(xp_nt, h_nt))
+max_nt = Point(0.5*width, sbor[2]).distance(Point(xp_nt, h_nt))
+
+min_kp = Point(0.5*width, sbor[3]).distance(Point(xp_kp, h_kp))
+max_kp = Point(0.5*width, sbor[2]).distance(Point(xp_kp, h_kp))
+
+min_up = Point(-0.5*width, sbor[3]).distance(Point(xp_up, h_up))
+max_up = Point(-0.5*width, sbor[2]).distance(Point(xp_up, h_up))
 
 metal_mu = 1000  # относительная магнитная проницаемость стали
 glass_mu = 0.99  # относительная магнитная проницаемость стекла
@@ -188,7 +197,6 @@ def full_field(res_en):
     return [sum_h, sum_e, sum_g]
 
 
-# TODO переделать
 def ekran(en):
 
     x, y, z = en[1]
@@ -197,6 +205,12 @@ def ekran(en):
 
     kp_pass = kppth.intersects(frontWindleft) or kppth.intersects(frontWindright)
     nt_pass = ntpth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
+
+    kp_dist = Point(y, z).distance(Point(xp_kp, h_kp))
+    kp_pass |= (kp_dist >= min_kp) and (kp_dist <= max_kp) and (x >= sbor[0]) and (x <= sbor[1])
+
+    nt_dist = Point(y, z).distance(Point(xp_nt, h_nt))
+    nt_pass |= (nt_dist >= min_nt) and (nt_dist <= max_nt) and (x >= sbor[0]) and (x <= sbor[1])
 
     up_dist = Point(y, z).distance(Point(xp_up, h_up))
     up_pass = (up_dist >= min_up) and (up_dist <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
@@ -231,7 +245,7 @@ def visual_up():
 
     Xmin = -0.5
     Xmax = length + 0.5
-    Ymax = -1 * 0.5 * width * 1.3
+    Ymax = 1 * 0.5 * width * 1.3
     Ymin = xp_up * 1.15
 
     x = np.linspace(Xmin, Xmax, dis)
@@ -298,8 +312,8 @@ def fr_kab_lines():
 def visual_front():
     print('График строится..................')
 
-    Ymin = -1 * max(xp, width) * 1.15
-    Ymax = xp_up * 1.2
+    Ymax = 1 * max(xp, width) * 1.15
+    Ymin = xp_up * 1.2
     Zmax = 0.1
     Zmin = max(h_kp, h_nt, h_up) * 1.1
 
@@ -380,23 +394,24 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
 
 def kab_lines_up():
     d = 0.12
-    plt.hlines(y_chel-d, x_chel-d, x_chel+d, colors='white', linestyles='--')
-    plt.hlines(y_chel+d, x_chel-d, x_chel+d, colors='white', linestyles='--')
-    plt.hlines(-y_chel-d, x_chel-d, x_chel+d, colors='white', linestyles='--')
-    plt.hlines(-y_chel+d, x_chel-d, x_chel+d, colors='white', linestyles='--')
-    plt.vlines(x_chel-d, y_chel-d, y_chel+d, colors='white', linestyles='--')
-    plt.vlines(x_chel+d, y_chel-d, y_chel+d, colors='white', linestyles='--')
-    plt.vlines(x_chel-d, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
-    plt.vlines(x_chel+d, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
+    cl = 'blue'
+    plt.hlines(y_chel-d, x_chel-d, x_chel+d, colors=cl, linestyles='--')
+    plt.hlines(y_chel+d, x_chel-d, x_chel+d, colors=cl, linestyles='--')
+    plt.hlines(-y_chel-d, x_chel-d, x_chel+d, colors=cl, linestyles='--')
+    plt.hlines(-y_chel+d, x_chel-d, x_chel+d, colors=cl, linestyles='--')
+    plt.vlines(x_chel-d, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.vlines(x_chel+d, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.vlines(x_chel-d, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+    plt.vlines(x_chel+d, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
 
-    plt.hlines(y_chel-d, x_chel+d+0.05, x_chel+d+0.10, colors='white', linestyles='--')
-    plt.hlines(y_chel+d, x_chel+d+0.05, x_chel+d+0.10, colors='white', linestyles='--')
-    plt.hlines(-y_chel-d, x_chel+d+0.05, x_chel+d+0.10, colors='white', linestyles='--')
-    plt.hlines(-y_chel+d, x_chel+d+0.05, x_chel+d+0.10, colors='white', linestyles='--')
-    plt.vlines(x_chel+d+0.05, y_chel-d, y_chel+d, colors='white', linestyles='--')
-    plt.vlines(x_chel+d+0.10, y_chel-d, y_chel+d, colors='white', linestyles='--')
-    plt.vlines(x_chel+d+0.05, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
-    plt.vlines(x_chel+d+0.10, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
+    plt.hlines(y_chel-d, x_chel+d+0.05, x_chel+d+0.10, colors=cl, linestyles='--')
+    plt.hlines(y_chel+d, x_chel+d+0.05, x_chel+d+0.10, colors=cl, linestyles='--')
+    plt.hlines(-y_chel-d, x_chel+d+0.05, x_chel+d+0.10, colors=cl, linestyles='--')
+    plt.hlines(-y_chel+d, x_chel+d+0.05, x_chel+d+0.10, colors=cl, linestyles='--')
+    plt.vlines(x_chel+d+0.05, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.vlines(x_chel+d+0.10, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.vlines(x_chel+d+0.05, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+    plt.vlines(x_chel+d+0.10, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
 
     plt.vlines(bor[0], bor[2], -0.22, colors='white', linestyles='--')
     plt.vlines(bor[1], bor[2], -0.22, colors='white', linestyles='--')
@@ -408,42 +423,40 @@ def kab_lines_up():
     plt.hlines(0.22, bor[0], bor[1], colors='white', linestyles='--')
     plt.hlines(bor[3], bor[0], bor[1], colors='white', linestyles='--')
 
-    plt.plot(np.array([0.01, bor[0]]), np.array([0, bor[2]]), c='white', linestyle='--')
-    plt.plot(np.array([0.01, bor[0]]), np.array([0, bor[3]]), c='white', linestyle='--')
+    cl = 'black'
+    plt.plot(np.array([0.01, bor[0]]), np.array([0, bor[2]]), c=cl, linestyle='--')
+    plt.plot(np.array([0.01, bor[0]]), np.array([0, bor[3]]), c=cl, linestyle='--')
 
-    plt.hlines(0.5*width-0.01, 0, length, colors='white', linestyles='--')
-    plt.hlines(-0.5*width+0.01, 0, length, colors='white', linestyles='--')
-    plt.vlines(0.01, 0.5*width, -0.5*width, colors='white', linestyles='--')
-    plt.vlines(length-0.01, 0.5*width, -0.5*width, colors='white', linestyles='--')
+    plt.hlines(0.5*width-0.01, 0, length, colors=cl, linestyles='--')
+    plt.hlines(-0.5*width+0.01, 0, length, colors=cl, linestyles='--')
+    plt.vlines(0.01, 0.5*width, -0.5*width, colors=cl, linestyles='--')
+    plt.vlines(length-0.01, 0.5*width, -0.5*width, colors=cl, linestyles='--')
 
 
 def kab_lines_front():
     d = 0.13
-    plt.hlines(z_chel, y_chel-d, y_chel+d, colors='white', linestyles='--')
-    plt.hlines(z_chel, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
-    plt.hlines(z_chel-0.05, y_chel-d, y_chel+d, colors='white', linestyles='--')
-    plt.hlines(z_chel-0.05, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
+    cl = 'blue'
+    plt.hlines(z_chair, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair-0.05, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair-0.05, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
 
-    plt.vlines(y_chel-d, z_chel, z_chel-0.05, colors='white', linestyles='--')
-    plt.vlines(y_chel+d, z_chel, z_chel-0.05, colors='white', linestyles='--')
-    plt.vlines(-y_chel-d, z_chel, z_chel-0.05, colors='white', linestyles='--')
-    plt.vlines(-y_chel+d, z_chel, z_chel-0.05, colors='white', linestyles='--')
+    plt.vlines(y_chel-d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
+    plt.vlines(y_chel+d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
+    plt.vlines(-y_chel-d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
+    plt.vlines(-y_chel+d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
 
     d = 0.12
-    plt.hlines(z_chel+0.05, y_chel-d, y_chel+d, colors='white', linestyles='--')
-    plt.hlines(z_chel+0.05+2*d, y_chel-d, y_chel+d, colors='white', linestyles='--')
-    plt.hlines(z_chel+0.05, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
-    plt.hlines(z_chel+0.05+2*d, -y_chel-d, -y_chel+d, colors='white', linestyles='--')
+    plt.hlines(z_chair+0.05, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair+0.05+2*d, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair+0.05, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair+0.05+2*d, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
 
-    plt.vlines(y_chel-d, z_chel+0.05, z_chel+0.05+2*d, colors='white', linestyles='--')
-    plt.vlines(y_chel+d, z_chel+0.05, z_chel+0.05+2*d, colors='white', linestyles='--')
-    plt.vlines(-y_chel-d, z_chel+0.05, z_chel+0.05+2*d, colors='white', linestyles='--')
-    plt.vlines(-y_chel+d, z_chel+0.05, z_chel+0.05+2*d, colors='white', linestyles='--')
+    plt.vlines(y_chel-d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
+    plt.vlines(y_chel+d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
+    plt.vlines(-y_chel-d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
+    plt.vlines(-y_chel+d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
 
-    plt.hlines(floor+0.01, 0.5*width, -0.5*width, colors='white', linestyles='--')
-    plt.hlines(height+floor-0.01, 0.5*width, -0.5*width, colors='white', linestyles='--')
-    plt.vlines(0.5*width-0.01, height, height+floor, colors='white', linestyles='--')
-    plt.vlines(-0.5*width+0.01, height, height+floor, colors='white', linestyles='--')
 
 
 def ted_lines():
@@ -497,16 +510,16 @@ def visual_up_locomotive(ext_f):
     inside = [[full_field(ekran(el)) for el in y_list if (el[1][0] >= Xmin) and (el[1][0] <= Xmax)]
               for y_list in ext_f if abs(y_list[0][1][1]) <= 0.5 * width]
 
-    x_ln = np.linspace(Xmin, Xmax, len(inside[0]), endpoint=True)
-    y_ln = np.linspace(Ymin, Ymax, len(inside), endpoint=True)
+    x_ln = np.linspace(Xmin, Xmax, len(inside[0]))
+    y_ln = np.linspace(Ymin, Ymax, len(inside))
 
     magnetic = [[x_el[0] for x_el in y_list] for y_list in inside]
     electric = [[x_el[1] for x_el in y_list] for y_list in inside]
     energy = [[x_el[2] for x_el in y_list] for y_list in inside]
 
     def graph_do(znach, name_, x_lb='', y_lb=''):
-        ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
-        plt.clabel(ct, fontsize=10)
+        # ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
+        # plt.clabel(ct, fontsize=10)
         plt.imshow(znach, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95, norm=colors.LogNorm())
         plt.colorbar()
 
@@ -587,44 +600,29 @@ def visual_front_locomotive(ext_f):
 
     ekran_ = [[ekran(y_el) for y_el in z_list if abs(y_el[1][1]) <= Ymax] for z_list in ext_f
               if z_list[0][1][2] < Zmin]
-    energy = [[full_field(x_el)[2] for x_el in y_list] for y_list in ekran_]
 
-    plt.figure(5)
-    name = 'Вид cпереди с экраном. Энергия.'
-    plt.imshow(energy, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
-    plt.colorbar()
-    fr_kab_lines()
-    plt.title(name)
-    mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
-    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    summar = [[full_field(x_el) for x_el in y_list] for y_list in ekran_]
+    magnetic = [[x_el[0] for x_el in y_list] for y_list in summar]
+    electric = [[x_el[1] for x_el in y_list] for y_list in summar]
+    energy = [[x_el[2] for x_el in y_list] for y_list in summar]
 
-    Ymin, Ymax = -0.5*width, 0.5*width
-    Zmin, Zmax = floor+height, floor
-    kabina = [[y_el for y_el in z_list if abs(y_el[1][1]) <= Ymax] for z_list in ekran_
-                if (z_list[0][1][2] > Zmax) and (z_list[0][1][2] < Zmin)]
-    y_ln = np.linspace(Ymin, Ymax, len(kabina[0]), endpoint=True)
-    z_ln = np.linspace(Zmin, Zmax, len(kabina), endpoint=True)
+    y_ln = np.linspace(Ymin, Ymax, len(ekran_[0]))
+    z_ln = np.linspace(Zmin, Zmax, len(ekran_))
     chel_y = np.where(y_ln == max([y_ for y_ in y_ln if y_ <= y_chel]))[0][0]
     chel_z = np.where(z_ln == max([z_ for z_ in z_ln if z_ <= z_chel]))[0][0]
 
-    summar = [[full_field(x_el) for x_el in y_list] for y_list in kabina]
-    magnetic = [[x_el[0] for x_el in y_list] for y_list in summar]
-    electric = [[x_el[1] for x_el in y_list] for y_list in summar]
-    energy = [[x_el[0]*x_el[1] for x_el in y_list] for y_list in summar]
-
     def graph_do(znach, name_, x_lb='', y_lb=''):
-        ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
-        plt.clabel(ct, fontsize=10)
+        # ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
+        # plt.clabel(ct, fontsize=10)
         plt.imshow(znach, extent=[Ymin, Ymax, Zmax, Zmin],  cmap=cmap,  alpha=0.95, norm=colors.LogNorm())
         plt.colorbar()
+        fr_kab_lines()
 
         plt.xlabel(x_lb)
         plt.ylabel(y_lb)
         plt.title(name_)
 
-
-    plt.figure(6)
+    plt.figure(5)
     name = 'Cпереди кабина переменное с экраном'
     plt.subplot(1, 3, 1)
     graph_do(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
@@ -633,21 +631,21 @@ def visual_front_locomotive(ext_f):
     graph_do(electric, 'Электрическое', x_lb='Ось x, метры')
     kab_lines_front()
     plt.subplot(1, 3, 3)
-    graph_do(energy, 'Общее', x_lb='Ось x, метры',)
+    graph_do(energy, 'Общее', x_lb='Ось x, метры', )
     kab_lines_front()
     plt.suptitle(name)
     mng = plt.get_current_fig_manager()
     mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
-    plt.figure(7)
+    plt.figure(6)
     name = 'Гармоники магнитное вид спереди'
     i = 0
     chel_harm_h = []
     for fr in harm.keys():
         i += 1
         plt.subplot(3, 3, i)
-        data = [[sum(el[0][fr][0]) for el in lst]for lst in kabina]
+        data = [[sum(el[0][fr][0]) for el in lst]for lst in ekran_]
         chel_harm_h.append(data[chel_z][chel_y])
         graph_do(data, '', y_lb=str(fr))
         kab_lines_front()
@@ -658,14 +656,14 @@ def visual_front_locomotive(ext_f):
     mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
-    plt.figure(8)
+    plt.figure(7)
     name = 'Гармоники электрическое вид спереди'
     i = 0
     chel_harm_e = []
     for fr in harm.keys():
         i += 1
         plt.subplot(3, 3, i)
-        data = [[sum(el[0][fr][1]) for el in lst]for lst in kabina]
+        data = [[sum(el[0][fr][1]) for el in lst]for lst in ekran_]
         chel_harm_e.append(data[chel_z][chel_y])
         graph_do(data, '', y_lb=str(fr))
         kab_lines_front()
@@ -674,6 +672,7 @@ def visual_front_locomotive(ext_f):
     plt.suptitle(name)
 
     mng = plt.get_current_fig_manager()
+    mng.window.state('zoomed')
 
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
@@ -700,7 +699,7 @@ def visual_front_post():
 
     ted_field = ted_field_calc(y_ln, z_ln, I_ted, U_ted, 5, type_='FRONT')
 
-    plt.figure(9)
+    plt.figure(8)
     name = 'Вид спереди постоянное'
     all_f = [el[0][0] * el[0][1] for el in ted_field]
     plt.subplot(1, 2, 1)
@@ -746,7 +745,7 @@ def visual_front_post():
 
     y_ln, z_ln = y_kab, z_kab
 
-    plt.figure(10)
+    plt.figure(9)
     name = 'Вид спереди кабина постоянное экран'
     plt.subplot(1, 3, 1)
     kab_lines_front()
@@ -782,7 +781,6 @@ print(f'Напряжение ТЭД: {U_ted} Вольт')
 print(f'Ток ТЭД: {I_ted} Ампер')
 print(f'Высота среза: {z_graph} метров')
 
-
 ## ПОСТРОЕНИЕ ГРАФИКА ##
 
 print('\nБез электровоза')
@@ -793,6 +791,7 @@ cont_f_front = visual_front()
 
 print('\nПоле в кабине сверху')
 visual_up_locomotive(cont_f_up)
+
 visual_up_post()
 
 print('\nПоле в кабине спереди')

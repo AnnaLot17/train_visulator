@@ -105,6 +105,7 @@ kh_metal = {frq: 20 * log(1 + (metal_sigma * 2 * pi * frq * metal_mu * metal_r *
             for frq in harm.keys()}
 ke_metal = 20 * log(60 * pi * metal_t * metal_sigma, 10)
 
+
 kh_post = 1 + (0.66 * metal_mu * metal_t / metal_r)
 ke_post = ke_metal
 
@@ -240,6 +241,12 @@ def ekran_post(ext_en):
     return [[ext_en[0][0] / k_h, ext_en[0][1] / k_e], ext_en[1]]
 
 
+def show(name):
+    mng = plt.get_current_fig_manager()
+    mng.window.state('zoomed')
+    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+
+
 def visual_up():
     print('График строится..................')
 
@@ -289,12 +296,8 @@ def visual_up():
     do_graph(electric, 'Электрическое', x_lb='Ось x, метры', y_lb='Ось y, метры')
     plt.subplot(1, 3, 3)
     do_graph(energy, 'Энергия', x_lb='Ось x, метры', y_lb='Ось y, метры')
-
     plt.suptitle(name)
-    mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
-
-    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    show(name)
 
     print('График построен.')
 
@@ -345,11 +348,7 @@ def visual_front():
 
     plt.title('Вид сбоку')
 
-    mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
-
-    name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_вид сбоку.png"
-    plt.savefig(name)
+    show('вид сбоку')
 
     print('График построен.')
     return every_f
@@ -540,10 +539,7 @@ def visual_up_locomotive(ext_f):
     kab_lines_up()
     graph_do(energy, 'Общее', x_lb='Ось x, метры',)
 
-    plt.suptitle(name)
-    mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
-    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    show(name)
 
 
 def visual_up_post():
@@ -586,10 +582,7 @@ def visual_up_post():
     ted_lines()
     kab_lines_up()
 
-    plt.suptitle(name)
-    mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
-    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    show(name)
 
     print('График построен.')
 
@@ -634,9 +627,7 @@ def visual_front_locomotive(ext_f):
     graph_do(energy, 'Общее', x_lb='Ось x, метры', )
     kab_lines_front()
     plt.suptitle(name)
-    mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
-    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    show(name)
 
     plt.figure(6)
     name = 'Гармоники магнитное вид спереди'
@@ -652,9 +643,7 @@ def visual_front_locomotive(ext_f):
     plt.subplot(3, 3, 9)
     plt.bar(range(0, len(harm.keys())), chel_harm_h)
     plt.suptitle(name)
-    mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
-    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    show(name)
 
     plt.figure(7)
     name = 'Гармоники электрическое вид спереди'
@@ -670,21 +659,52 @@ def visual_front_locomotive(ext_f):
     plt.subplot(3, 3, 9)
     plt.bar(range(0, len(harm.keys())), chel_harm_e)
     plt.suptitle(name)
-
-    mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
-
-    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    show(name)
 
     print('Гармоники магнитного поля для человека', chel_harm_h,
           'Гармоники электрического поля для человека', chel_harm_e,
           sep='\n')
 
+    def table_out(znach, f=0, t=0, ln=10):
+        for y in y_ln:
+            print(f'{y:.3f}'.ljust(ln), end='', file=rf)
+        print('y / z\n', file=rf)
+        for no, y_list in enumerate(znach):
+            for dt in y_list:
+                if f:
+                    print(f'{sum(dt[0][f][t]):.3f}'.ljust(ln), end='', file=rf)
+                else:
+                    print(f'{dt:.3f}'.ljust(ln), end='', file=rf)
+            print(f'| {z_ln[no]:.3f}', file=rf)
+        print('\n', file=rf)
+
+    rf = open('peremennoe_pole.txt', 'w')
+
+    print('МАГНИТНОЕ ПОЛЕ\n', file=rf)
+    print('Общее\n', file=rf)
+    table_out(magnetic)
+    print('Гармоники\n', file=rf)
+    for fr in harm.keys():
+        print(f'{fr} Гц\n', file=rf)
+        table_out(ekran_, f=fr)
+
+    print('ЭЛЕКТРИЧЕСКОЕ ПОЛЕ\n', file=rf)
+    print('Общее\n', file=rf)
+    table_out(electric)
+    print('Гармоники\n', file=rf)
+    for fr in harm.keys():
+        print(f'{fr} Гц\n', file=rf)
+        table_out(ekran_, f=fr, t=1)
+
+    print('ЭНЕРГИЯ\n', file=rf)
+    table_out(energy, ln=12)
+    rf.close()
+
 
 def visual_front_post():
 
     print('Расчёт поля от тяговых двигателей')
-    dis_y, dis_z = 60, 40
+    dis_y, dis_z = 60, 60
     y_ln = np.linspace(-0.6*width, 0.6*width, dis_y, endpoint=True)
     z_ln = np.linspace(floor+height+1, 0.1, dis_z, endpoint=True)
 
@@ -715,10 +735,7 @@ def visual_front_post():
     fr_kab_lines()
     plt.title('С экраном')
 
-    plt.suptitle(name)
-    mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
-    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    show(name)
 
     def graph_do(znach, name_, x_lb='', y_lb='', lev=5):
         ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=lev)
@@ -757,19 +774,32 @@ def visual_front_post():
     kab_lines_front()
     graph_do(energy, 'Общее', x_lb='Ось y, метры', y_lb='Ось z, метры', lev=5)
     plt.suptitle(name)
-
-    mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
-    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    show(name)
 
     print('График построен.')
 
+    def table_out(znach, ln=12):
+        for y in y_ln:
+            print(f'{y:.3f}'.ljust(ln), end='', file=rf)
+        print('y / z\n', file=rf)
+        for no, y_list in enumerate(znach):
+            for dt in y_list:
+                print(f'{dt:.3f}'.ljust(ln), end='', file=rf)
+            print(f'| {z_ln[no]:.3f}', file=rf)
+        print('\n', file=rf)
 
-## РАСЧЁТ СТАТИСТИКИ ##
+    rf = open('postoyannoe_pole.txt', 'w')
 
-S = (a * b / 3600) ** 1 / 2
-p = ti / 24  # статистическая вероятность воздействия
+    print('МАГНИТНОЕ ПОЛЕ\n', file=rf)
+    table_out(magnetic)
+    print('ЭЛЕКТРИЧЕСКОЕ ПОЛЕ\n', file=rf)
+    table_out(electric)
+    print('ЭНЕРГИЯ\n', file=rf)
+    table_out(energy, ln=14)
+    rf.close()
 
+
+# ВЫВОД ПАРАМЕТРОВ
 
 print('\nПараметры сети')
 print(f'Высота КП: {h_kp} м')
@@ -781,7 +811,7 @@ print(f'Напряжение ТЭД: {U_ted} Вольт')
 print(f'Ток ТЭД: {I_ted} Ампер')
 print(f'Высота среза: {z_graph} метров')
 
-## ПОСТРОЕНИЕ ГРАФИКА ##
+# ПОСТРОЕНИЕ ГРАФИКА
 
 print('\nБез электровоза')
 cont_f_up = visual_up()
@@ -791,12 +821,16 @@ cont_f_front = visual_front()
 
 print('\nПоле в кабине сверху')
 visual_up_locomotive(cont_f_up)
-
 visual_up_post()
 
 print('\nПоле в кабине спереди')
 visual_front_locomotive(cont_f_front)
 visual_front_post()
+
+# РАСЧЁТ СТАТИСТИКИ
+
+S = (a * b / 3600) ** 1 / 2
+p = ti / 24  # статистическая вероятность воздействия
 
 chel_f_per = [{fr: (magnetic_calc(y_chel, floor+0.7, fr), electric_calc(y_chel, floor+0.7, fr)) for fr in harm.keys()},
               (x_chel, y_chel, floor+0.7)]

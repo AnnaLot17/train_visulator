@@ -680,6 +680,9 @@ def visual_front_locomotive(ext_f):
 
     rf = open('peremennoe_pole.txt', 'w')
 
+    print('Верхняя строка - ось y, метры. Крайний правый столбец - ось z, метры. '
+          'В ячейках - магнитная или электрическая напряжённость А/м и В/м соответственно.\n', file=rf)
+
     print('МАГНИТНОЕ ПОЛЕ\n', file=rf)
     print('Общее\n', file=rf)
     table_out(magnetic)
@@ -790,6 +793,9 @@ def visual_front_post():
 
     rf = open('postoyannoe_pole.txt', 'w')
 
+    print('Верхняя строка - ось y, метры. Крайний правый столбец - ось z, метры. '
+          'В ячейках - магнитная или электрическая напряжённость А/м и В/м соответственно.\n', file=rf)
+
     print('МАГНИТНОЕ ПОЛЕ\n', file=rf)
     table_out(magnetic)
     print('ЭЛЕКТРИЧЕСКОЕ ПОЛЕ\n', file=rf)
@@ -832,8 +838,8 @@ visual_front_post()
 S = (a * b / 3600) ** 1 / 2
 p = ti / 24  # статистическая вероятность воздействия
 
-chel_f_per = [{fr: (magnetic_calc(y_chel, floor+0.7, fr), electric_calc(y_chel, floor+0.7, fr)) for fr in harm.keys()},
-              (x_chel, y_chel, floor+0.7)]
+chel_f_per = [{fr: (magnetic_calc(y_chel, z_chel, fr), electric_calc(y_chel, z_chel, fr)) for fr in harm.keys()},
+              (x_chel, y_chel, z_chel)]
 no_ekran_per = full_field(chel_f_per)[2]
 print('\nПеременное поле без экрана: %.4f' % no_ekran_per)
 

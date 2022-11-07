@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.tri as tri
 from datetime import datetime
 
+
 '''
 ОПИСАНИЕ
 выполнение модуля начинается в 700-х строках, вызовом
@@ -20,16 +21,19 @@ visual_front() - построение вида сбоку по срезам. В 
 '''
 
 # СТАТИСТИЧЕСКИЕ ДАННЫЕ
-y_chel = 1.4 - 0.3  # положение человека по оси y
-z_chel = 3  # положение человека по оси  z
+x_chel = 0.9  # положение человека по оси х
+y_chel = 1.2 - 0.3  # положение человека по оси y
+z_chel = 2 + 1.5  # положение человека по оси  z
+z_chair = 2 + 1.2  # сидушка стула
 a = 1.75  # высота человека метры
 b = 80  # масса человека килограммы
 ti = 1  # длительность пребывания работника на рабочем месте, часов
 chel = {}
 
 # КОНСТАНТЫ
-
-dis = 80  # дискретизация графиков
+#todo
+# dis = 80  # дискретизация графиков
+dis = 20  # дискретизация графиков
 harm = {50: [1, 1],
         150: [0.3061, 0.400],
         250: [0.1469, 0.115],
@@ -53,7 +57,7 @@ metal_t = 0.0025  # толщина стали
 metal_sigma = 10 ** 7  # удельная проводимость стали
 v_kab = all_length * width * height
 metal_r = (v_kab * 3 / 4 / pi) ** 1 / 3
-kh_metal = {str(frq): 10 * log(1 + (metal_sigma * 2 * pi * frq * metal_mu * metal_r * metal_t / 2) ** 2, 10)
+kh_metal = {frq: 10 * log(1 + (metal_sigma * 2 * pi * frq * metal_mu * metal_r * metal_t / 2) ** 2, 10)
             for frq in harm.keys()}
 ke_metal = 20 * log(60 * pi * metal_t * metal_sigma, 10)
 
@@ -139,22 +143,6 @@ I_td = 880
 U_td = 1950
 n_td = 5
 
-# КОНТАКТНАЯ СЕТЬ
-
-I_ks = 300  # cуммарная сила тока, А
-U_ks = 30000  # cуммарное напряжение, В
-
-xp = 0.760  # m - половина расстояния между рельсами
-xp_kp = 0  # m - расстояние от центра между рельсами до КП (если левее центра - поставить минус)
-xp_nt = 0  # m - расстояние от центра между рельсами до НТ (если левее центра - поставить минус)
-xp_up = 3.7  # m - расстояние от центра между рельсами до УП
-d_kp = 12.81 / 1000  # mm
-d_nt = 12.5 / 1000  # mm
-d_up = 17.5 / 1000  # mm
-h_kp = 6.0  # КП
-h_nt = 7.8  # НТ
-h_up = 8.0  # УП
-
 # РАЗМЕРЫ И ДАННЫЕ ЭКРАНА
 
 b_v = 2.6  # ширина экрана камеры, м
@@ -180,7 +168,7 @@ for fr in harm.keys():
     lam = 300000000 / fr  # длина волны
     Zh = Z0 * 2 * pi * re_v / lam
     ekr_h = 0.012 * (d_v * Zh / ro) ** 0.5 * (lam / re_v) ** (1 / 3) * exp(pi * ds / (s_ - ds))
-    koef_ekr_h_setka[fr] = ekr_h
+    koef_ekr_h_setka[fr] = 1 / ekr_h
 
     delta = 0.016 / (fr ** 0.5)
     ekr_e = 60 * pi * 1 * delta / (ro * s_ * 2.83 * (ds ** 0.5)) * exp(ds / delta)
@@ -325,7 +313,7 @@ def oborud_per(element, v1arr, v2arr, v3, I, U, type_='FRONT'):
             r_m = ((m[0] - x_) ** 2 + (m[1] - y_) ** 2 + (floor - z_) ** 2) ** 0.5
             if r_m != 0:
                 E_ob += U / r_m / len(minus)
-        return [{f: [harm[f][0] * H_ob / len(points), harm[f][1] * E_ob] for f in harm.keys()}, (x_, y_, z_)]
+        return [{f: [harm[f][0] * H_ob / len(points), harm[f][1] * E_ob, ] for f in harm.keys()}, (x_, y_, z_)]
 
     if type_ == 'FRONT':
         return [in_point(v3, y, z) for z in v2arr for y in v1arr]
@@ -404,87 +392,6 @@ def oborud_ted(v1arr, v2arr, v3, I, U, n=n_td, type_='FRONT'):
         return [in_point(x, y, v3) for y in v2arr for x in v1arr]
 
 
-def mix(h_x, h_zz):
-    return (h_x ** 2 + h_zz ** 2) ** 0.5
-
-
-def magnetic_calc(x_m, z_m, f_m):
-    I_h = I_ks * harm.get(f_m)[0]
-
-    Ikp = 0.41 * I_h
-    Int = 0.20 * I_h
-    Iup = 0.39 * I_h
-
-    x = x_m - xp_kp
-    h1xkp = Ikp / (4 * pi) * (
-            -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / (x ** 2 + (h_kp - z_m) ** 2))
-    h1zkp = Ikp / (4 * pi) * (x + xp) * (
-            1 / ((x + xp) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_kp - z_m) ** 2))
-    h1kp = mix(h1xkp, h1zkp)
-    x = x_m - 2 * xp - xp_kp
-    h2xkp = Ikp / (4 * pi) * (
-            -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / ((x + 2 * xp) ** 2 + (h_kp - z_m) ** 2))
-    h2zkp = Ikp / (4 * pi) * (x + 2 * xp) * (
-            1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2 * xp) ** 2 + (h_kp - z_m) ** 2))
-    h2kp = mix(h2xkp, h2zkp)
-    hkp = h1kp + h2kp
-
-    x = x_m - xp_nt
-    h1xnt = Ikp / (4 * pi) * (
-            -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / (x ** 2 + (h_nt - z_m) ** 2))
-    h1znt = Ikp / (4 * pi) * (x + xp) * (
-            1 / ((x + xp) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_nt - z_m) ** 2))
-    h1nt = mix(h1xnt, h1znt)
-    x = x_m - 2 * xp - xp_nt
-    h2xnt = Ikp / (4 * pi) * (
-            -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
-    h2znt = Ikp / (4 * pi) * (x + 2 * xp) * (
-            1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
-    h2nt = mix(h2xnt, h2znt)
-    hnt = h1nt + h2nt
-
-    x = x_m - xp_up
-    x2 = -xp + xp_up
-    h1xup = Iup / (4 * pi) * (
-            -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / (x ** 2 + (h_up - z_m) ** 2))
-    h1zup = Int / (4 * pi) * (x2 + 2 * xp + x) * (
-            1 / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_up - z_m) ** 2))
-    h1up = mix(h1xup, h1zup)
-    x = x_m - xp_up - 2 * xp
-    x2 = -xp + xp_up
-    h2xup = Iup / (4 * pi) * (
-            -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
-    h2zup = Iup / (4 * pi) * (
-            (x2 + 2 * xp + x) / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - (x + 2 * xp) / (
-                (x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
-    h2up = mix(h2xup, h2zup)
-    hup = h1up + h2up
-
-    return hkp + hnt + hup
-
-
-def electric_calc(x_e, z_e, f_e):
-    U_h = U_ks * harm.get(f_e)[1]
-    e_res = U_h * (
-            log(1 + 4 * h_nt * z_e / ((x_e - xp_nt) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt)) +
-            log(1 + 4 * h_kp * z_e / ((x_e - xp_kp) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp)) +
-            log(1 + 4 * h_up * z_e / ((x_e - xp_up) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
-    )
-    return e_res
-
-
-def energy_pass(x_e, y_e, z_e):
-    res_energy = {}
-    for freq in harm.keys():
-        h = magnetic_calc(y_e, z_e, freq)
-        e = electric_calc(y_e, z_e, freq)
-        if z_e > floor:
-            h /= koef_ekr_h_splosh_v
-            e /= koef_ekr_e_splosh
-        res_energy[freq] = [h, e]
-    return [res_energy, (x_e, y_e, z_e)]
-
-
 def field_sum_per(*arg):
     def summ(f, i):
         sum_h, sum_e = 0, 0
@@ -515,9 +422,10 @@ def full_energy(en):
     return [sum_h, sum_e], en[1]
 
 
-def ekran(elm, tp='SETKA', ver='PER'):
-    # тут
-    if (elm[1][0] > length + 0.4) and (elm[1][1] > -0.5 * width + kor_w) and (elm[1][2] > 2):
+def ekran(elm, tp='SETKA', ver='PER', viz='FRONT'):
+    y_flag = elm[1][1] < 0.5 * width - kor_w if viz == 'FRONT' else elm[1][1] > -0.5 * width + kor_w
+
+    if (elm[1][0] > length + 0.4) and y_flag and (elm[1][2] > 2):
         return elm
     else:
         if tp == 'SETKA':
@@ -650,7 +558,7 @@ def triang_draw(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb
 
 def show(name):
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+    # mng.window.state('zoomed') todo
     file_name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png"
     plt.savefig(file_name)
 
@@ -668,14 +576,6 @@ def visual_up_per():
 
     tr = make_triang(x_ln, y_ln)
 
-    def figure_draw(znach, name_):
-        triang_draw(tr, znach, name_)
-        lines_shina(sh_tt_gk, 'turquoise', type_='UP')
-        lines_shina(sh_gk_vu, 'c', type_='UP')
-        lines_oborud(gk, 'lime', type_='UP')
-        lines_oborud(tt, 'white', type_='UP')
-        lines_corp(Xmin, Xmax, Ymin, Ymax)
-
     print('Расчёт поля переменного тока.....')
     print('Расчёт поля шин...')
     tt_gk = shina(sh_tt_gk, x_ln, y_ln, z_graph, I_tt_gk, U_tt_gk, type_='UP', ver_='PER')
@@ -686,12 +586,21 @@ def visual_up_per():
 
     ks_f = [energy_pass(x, y, z_graph) for y in y_ln for x in x_ln]
 
-    field = field_sum_per(tt_gk, gk_vu, gk_f, ks_f, mt)
+    field_ekran = [ekran(el, viz='UP') for el in field_sum_per(tt_gk, gk_vu, gk_f, mt)]
+    field = field_sum_per(field_ekran, ks_f)
 
     summar = [full_energy(el) for el in field]
     magnetic = [el[0][0] for el in summar]
     electric = [el[0][1] for el in summar]
     energy = [el[0][0] * el[0][1] for el in summar]
+
+    def figure_draw(znach, name_):
+        triang_draw(tr, znach, name_)
+        lines_shina(sh_tt_gk, 'turquoise', type_='UP')
+        lines_shina(sh_gk_vu, 'c', type_='UP')
+        lines_oborud(gk, 'lime', type_='UP')
+        lines_oborud(tt, 'white', type_='UP')
+        lines_corp(Xmin, Xmax, Ymin, Ymax)
 
     global gph_num
     gph_num += 1
@@ -784,27 +693,34 @@ def visual_up_post(z):
         plt.suptitle('Постоянный, вид сверху')
 
     show(f'пост_верх_{z}_м')
+    
+
+def energy_pass(x, y, z, okna=False):
+    def fr_make():
+        h = 50
+        e = 6000
+        return {f: [h*harm[f][0]/kh_metal[f], e*harm[f][1]/ke_metal] for f in harm.keys()}
+        
+    # TODO внешнее поле в зависимости от х
+    return [fr_make(), (x, y, z)]
 
 
 def visual_front():
     print('График строится..................')
 
-    Ymax = -0.5 * width
+    Ymax = 0.5 * width
     Ymin = -Ymax
-    Ykab = -0.5 * width + kor_w
-    Zmax = 0.5
+    Zmax = floor + 0.1
     Zmin = height + floor
-    Zkab = floor + 0.1
 
     y_ln = np.linspace(Ymin, Ymax, dis)
     z_ln = np.linspace(Zmin, Zmax, dis)
-    z_ln_kab = np.linspace(Zmin, Zkab, dis)
 
-    z_ln_kor = [z for z in z_ln if z >= Zkab]
-    y_ln_kor = [y for y in y_ln if y < Ykab]
+    tr_kab = make_triang(y_ln, z_ln)
 
-    tr_all = make_triang(y_ln, z_ln)
-    tr_kab = make_triang(y_ln, z_ln_kab)
+    def eng(en):
+        fe = full_energy(en)
+        return fe[0][0] * fe[0][1]
 
     global gph_num
 
@@ -813,14 +729,14 @@ def visual_front():
         print(f"Построение среза {no} м")
         print('Расчёт поля переменного тока...')
 
-        ks_f = [energy_pass(no, y, z) for z in z_ln_kab for y in y_ln]
+        ks_f = [energy_pass(no, y, z) for z in z_ln for y in y_ln]
 
         print('Расчёт поля шин...')
-        tt_gk = shina(sh_tt_gk, y_ln, z_ln_kab, no, I_tt_gk, U_tt_gk, ver_='PER')
-        gk_vu = shina(sh_gk_vu, y_ln, z_ln_kab, no, I_gk_vu, U_gk_vu, ver_='PER')
-        mt = shina(mednaya_truba, y_ln, z_ln_kab, no, I_mt, U_mt, ver_='PER')
+        tt_gk = shina(sh_tt_gk, y_ln, z_ln, no, I_tt_gk, U_tt_gk, ver_='PER')
+        gk_vu = shina(sh_gk_vu, y_ln, z_ln, no, I_gk_vu, U_gk_vu, ver_='PER')
+        mt = shina(mednaya_truba, y_ln, z_ln, no, I_mt, U_mt, ver_='PER')
         print('Расчёт поля оборудования...')
-        gk_f = oborud_per(gk, y_ln, z_ln_kab, no, I_gk, U_gk)
+        gk_f = oborud_per(gk, y_ln, z_ln, no, I_gk, U_gk)
 
         field_per = field_sum_per(tt_gk, gk_vu, gk_f, mt)
 
@@ -835,59 +751,30 @@ def visual_front():
 
         ted_f = oborud_ted(y_ln, z_ln, no, I_td, U_td, n_td)
 
-        energy_per = [e[0][0] * e[0][1] for e in [full_energy(el) for el in field_per]]
-        energy_post = [e[0][0] * e[0][1] for e in field_sum_post(field_post, ted_f)]
-
         print('Расчёт экрана...')
-        ekran_per_setka = [full_energy(ekran(elm)) for elm in field_per
-                           if (elm[1][1] in y_ln_kor)]
-        ekran_post_setka = [ekran(elm, ver='POST') for elm in field_post
-                            if (elm[1][1] in y_ln_kor) and (elm[1][2] in z_ln_kor)]
-        ekran_per_splosh = [full_energy(ekran(elm, tp='SPLOSH')) for elm in field_per
-                            if (elm[1][1] in y_ln_kor)]
-        ekran_post_splosh = [ekran(elm, tp='SPLOSH', ver='POST') for elm in field_post
-                             if (elm[1][1] in y_ln_kor) and (elm[1][2] in z_ln_kor)]
+        ekran_per_setka = field_sum_per([ekran(elm) for elm in field_per], ks_f)
+        ekran_per_splosh = field_sum_per([ekran(elm, tp='SPLOSH') for elm in field_per], ks_f)
 
-        koridor = {'сетка_переменный': np.array([en[0][0] * en[0][1] for en in ekran_per_setka]),
+        ekran_post_setka = field_sum_post([ekran(elm, ver='POST') for elm in field_post], ted_f)
+        ekran_post_splosh = field_sum_post([ekran(elm, tp='SPLOSH', ver='POST') for elm in field_post], ted_f)
+
+        koridor = {'сетка_переменный': np.array([eng(en) for en in ekran_per_setka]),
                    'сетка_постоянный': np.array([en[0][0] * en[0][1] for en in ekran_post_setka]),
-                   'сплошной_переменный': np.array([en[0][0] * en[0][1] for en in ekran_per_splosh]),
+                   'сплошной_переменный': np.array([eng(en) for en in ekran_per_splosh]),
                    'сплошной_постоянный': np.array([en[0][0] * en[0][1] for en in ekran_post_splosh])
                    }
 
-        ch_per_set = [e[0] for e in ekran_per_setka if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0]
-        ch_post_set = [e[0] for e in ekran_post_setka if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0]
-        ch_per_sp = [e[0] for e in ekran_per_splosh if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0]
-        ch_post_sp = [e[0] for e in ekran_post_splosh if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0]
+        ch_per_set, ch_post_set, ch_per_sp, ch_post_sp =\
+            [e for e in ekran_per_setka if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0],\
+            [e[0] for e in ekran_post_setka if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0],\
+            [e for e in ekran_per_splosh if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0],\
+            [e[0] for e in ekran_post_splosh if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0]
 
-        key_ = f'{SZ[no]} сетка'
+        ch_per_set = full_energy(ch_per_set)[0]
+        ch_per_sp = full_energy(ch_per_sp)[0]
         global chel
-        chel[key_] = (ch_per_set[0] * ch_per_set[1], ch_post_set[0] * ch_post_set[1])
-        key_ = f'{SZ[no]} сплошной'
-        chel[key_] = (ch_per_sp[0] * ch_per_sp[1], ch_post_sp[0] * ch_post_sp[1])
-
-        gph_num += 1
-        plt.figure(gph_num)
-        name = f'Энергия. Вид сбоку. Срез {SZ[no]}.'
-
-        plt.subplot(1, 2, 1)
-        triang_draw(tr_kab, energy_per, 'Переменный', y_lb='Ось z, метры')
-        lines_shina(sh_tt_gk, 'turquoise')
-        lines_shina(sh_gk_vu, 'c')
-        lines_oborud(gk, 'lime')
-        lines_oborud(tt, 'white')
-        lines_corp(Ymin, Ymax, Zkab, Zmin)
-
-        plt.subplot(1, 2, 2)
-        triang_draw(tr_all, energy_post, 'Постоянный', y_lb='Ось z, метры')
-        lines_shina(sh_vu_cp, 'darkcyan')
-        lines_shina(sh_cp_td, 'royalblue')
-        lines_oborud(vu, 'aqua')
-        lines_oborud(cp, 'indigo')
-        lines_ted('darkblue')
-        lines_corp(Ymin, Ymax, Zkab, Zmin)
-
-        plt.suptitle(name)
-        show(f'энерг_{no}_м')
+        chel[f'{SZ[no]} сетка'] = (ch_per_set[0] * ch_per_set[1], ch_post_set[0] * ch_post_set[1])
+        chel[f'{SZ[no]} сплошной'] = (ch_per_sp[0] * ch_per_sp[1], ch_post_sp[0] * ch_post_sp[1])
 
         gph_num += 1
         plt.figure(gph_num)
@@ -897,57 +784,43 @@ def visual_front():
         for f in harm.keys():
             j += 1
             plt.subplot(3, 3, j)
-            data = [dt[0][f][0] * dt[0][f][1] for dt in field_per]
+            data = [dt[0][f][0] * dt[0][f][1] for dt in ekran_per_setka]
             triang_draw(tr_kab, data, '', y_lb=str(f))
         plt.suptitle(name)
         show(f'гарм_{SZ[no]}_м')
 
         gph_num += 1
         plt.figure(gph_num)
-
         i = 1
+        name = f'Энергия вид сбоку. Срез {SZ[no]}'
         for nam, val in koridor.items():
             plt.subplot(2, 2, i)
-
-            if 'постоянный' in nam:
-                znach = val.reshape(len(z_ln_kor), len(y_ln_kor))
-                plt.contour(y_ln_kor, z_ln_kor, znach, alpha=0.95, colors='black', linestyles='dotted', levels=3)
-            else:
-                znach = val.reshape(len(z_ln_kab), len(y_ln_kor))
-                plt.contour(y_ln_kor, z_ln_kab, znach, alpha=0.95, colors='black', linestyles='dotted', levels=3)
-            plt.imshow(znach, extent=[Ykab, Ymax, Zkab, Zmin], cmap='YlOrRd', alpha=0.95)
-            plt.colorbar()
-            lines_corp(Ykab, Ymax, Zkab, Zmin)
-
+            triang_draw(tr_kab, val, '')
+            lines_corp(0.5 * width - kor_w, Ymax, Zmax, Zmin)
             plt.ylabel(nam)
-
             i += 1
-        show(f'Коридор {SZ[no]}')
+        plt.suptitle(name)
+        show(name)
 
 
 # ПОСТРОЕНИЕ ГРАФИКА
 
-SZ = {x_vu2 + 0.5 * l_vu: 'ВУ_СР дальние'}
-#
-# SZ = {1: 'кабина',
-#       x_vu1 - 0.5 * l_vu: 'ВУ_СР ближние',
-#       x_tt + 0.5 * x_tt: 'ТТ_ГК',
-#       x_vu2 + 0.5 * l_vu: 'ВУ_СР дальние'
-#       }
+SZ = {1: 'кабина',
+      x_vu1 - 0.5 * l_vu: 'ВУ_СР ближние',
+      x_tt + 0.5 * x_tt: 'ТТ_ГК',
+      x_vu2 + 0.5 * l_vu: 'ВУ_СР дальние'
+      }
 
 z_graph = 3
 
 gph_num = 0
 print('\nВид сверху.')
-# Эти срезы строятся без экранов. Учитывается только экранирование от пола.
-# Экран, закрывающий кабину и высоковольтную камеру, не учитывается - чтобы была возможность рассмотреть поля как есть
 
 visual_up_per()
 visual_up_post(z_graph)  # построение среза на высоте пола
 visual_up_post(floor + z_td)  # построение среза на высоте ТЭД
 
 print('\nВид сбоку')
-# экраны, закрывающие кабину и камеру, рисуются здесь
 visual_front()
 
 # РАСЧЁТ СТАТИСТИКИ

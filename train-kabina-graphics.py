@@ -288,7 +288,9 @@ def visual_up():
 
         plt.title(name_)
 
-    plt.figure(1)
+    global gph_num
+    gph_num += 1
+    plt.figure(gph_num)
     name = 'Контактная сеть вид сверху'
     plt.subplot(1, 3, 1)
     do_graph(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
@@ -329,7 +331,9 @@ def visual_front():
     all_field = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
     summar = [[x_el[2] for x_el in y_list] for y_list in all_field]
 
-    plt.figure(2)
+    global gph_num
+    gph_num += 1
+    plt.figure(gph_num)
     b = 10 ** (len(str(round(np.amin(summar)))) - 1)  # для правильного отображения линий
     ct = plt.contour(y, z, summar, alpha=0.75, colors='black', linestyles='dotted',
                      levels=[b, 2*b, 5*b, 7*b, 10*b, 20*b, 50*b, 100*b, 200*b, 500*b, 700*b])
@@ -456,23 +460,6 @@ def kab_lines_front():
     plt.vlines(-y_chel-d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
     plt.vlines(-y_chel+d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
 
-
-
-def ted_lines():
-    pass
-    # x_td, y_td = r_td, l_td
-    # plt.hlines(dy_td - 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue', linestyles='--')
-    # plt.hlines(dy_td + 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue', linestyles='--')
-    # plt.vlines(x_td1_sr - x_td * 0.5, dy_td - 0.5 * y_td, dy_td + 0.5 * y_td, colors='blue', linestyles='--')
-    # plt.vlines(x_td1_sr + x_td * 0.5, dy_td - 0.5 * y_td, dy_td + 0.5 * y_td, colors='blue', linestyles='--')
-    # plt.hlines(-dy_td - 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue',
-    #            linestyles='--')
-    # plt.hlines(-dy_td + 0.5 * y_td, x_td1_sr - x_td * 0.5, x_td1_sr + x_td * 0.5, colors='blue',
-    #            linestyles='--')
-    # plt.vlines(x_td1_sr - x_td * 0.5, -dy_td - 0.5 * y_td, -dy_td + 0.5 * y_td, colors='blue', linestyles='--')
-    # plt.vlines(x_td1_sr + x_td * 0.5, -dy_td - 0.5 * y_td, -dy_td + 0.5 * y_td, colors='blue', linestyles='--')
-
-
 def ted_lines_front():
     plt.hlines(z_td + 0.5*r_td, dy_td - 0.5*l_td, dy_td + 0.5*l_td, colors='blue', linestyles='--')
     plt.hlines(z_td - 0.5*r_td, dy_td - 0.5*l_td, dy_td + 0.5*l_td, colors='blue', linestyles='--')
@@ -527,7 +514,9 @@ def visual_up_locomotive(ext_f):
 
         plt.title(name_)
 
-    plt.figure(3)
+    global gph_num
+    gph_num += 1
+    plt.figure(gph_num)
     name = 'Вид сверху кабина переменное экран'
     plt.subplot(1, 3, 1)
     kab_lines_up()
@@ -567,19 +556,18 @@ def visual_up_post():
     electric = [el[0][1]/ke_post for el in ted_field]
     energy = [el[0][0]/kh_post * el[0][1]/ke_post for el in ted_field]
 
-    plt.figure(4)
+    global gph_num
+    gph_num += 1
+    plt.figure(gph_num)
     name = 'Вид сверху кабина постоянное'
     plt.subplot(1, 3, 1)
     triang_do(tr, magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    ted_lines()
     kab_lines_up()
     plt.subplot(1, 3, 2)
     triang_do(tr, electric, 'Электрическое', x_lb='Ось x, метры')
-    ted_lines()
     kab_lines_up()
     plt.subplot(1, 3, 3)
     triang_do(tr, energy, 'Общее', x_lb='Ось x, метры')
-    ted_lines()
     kab_lines_up()
 
     show(name)
@@ -615,7 +603,9 @@ def visual_front_locomotive(ext_f):
         plt.ylabel(y_lb)
         plt.title(name_)
 
-    plt.figure(5)
+    global gph_num
+    gph_num += 1
+    plt.figure(gph_num)
     name = 'Cпереди кабина переменное с экраном'
     plt.subplot(1, 3, 1)
     graph_do(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
@@ -629,7 +619,8 @@ def visual_front_locomotive(ext_f):
     plt.suptitle(name)
     show(name)
 
-    plt.figure(6)
+    gph_num += 1
+    plt.figure(gph_num)
     name = 'Гармоники магнитное вид спереди'
     i = 0
     chel_harm_h = []
@@ -645,7 +636,8 @@ def visual_front_locomotive(ext_f):
     plt.suptitle(name)
     show(name)
 
-    plt.figure(7)
+    gph_num += 1
+    plt.figure(gph_num)
     name = 'Гармоники электрическое вид спереди'
     i = 0
     chel_harm_e = []
@@ -664,41 +656,6 @@ def visual_front_locomotive(ext_f):
     print('Гармоники магнитного поля для человека', chel_harm_h,
           'Гармоники электрического поля для человека', chel_harm_e,
           sep='\n')
-
-    def table_out(znach, f=0, t=0, ln=10):
-        for y in y_ln:
-            print(f'{y:.3f}'.ljust(ln), end='', file=rf)
-        print('y / z\n', file=rf)
-        for no, y_list in enumerate(znach):
-            for dt in y_list:
-                if f:
-                    print(f'{sum(dt[0][f][t]):.3f}'.ljust(ln), end='', file=rf)
-                else:
-                    print(f'{dt:.3f}'.ljust(ln), end='', file=rf)
-            print(f'| {z_ln[no]:.3f}', file=rf)
-        print('\n', file=rf)
-
-    rf = open('peremennoe_pole.txt', 'w')
-
-    print('МАГНИТНОЕ ПОЛЕ\n', file=rf)
-    print('Общее\n', file=rf)
-    table_out(magnetic)
-    print('Гармоники\n', file=rf)
-    for fr in harm.keys():
-        print(f'{fr} Гц\n', file=rf)
-        table_out(ekran_, f=fr)
-
-    print('ЭЛЕКТРИЧЕСКОЕ ПОЛЕ\n', file=rf)
-    print('Общее\n', file=rf)
-    table_out(electric)
-    print('Гармоники\n', file=rf)
-    for fr in harm.keys():
-        print(f'{fr} Гц\n', file=rf)
-        table_out(ekran_, f=fr, t=1)
-
-    print('ЭНЕРГИЯ\n', file=rf)
-    table_out(energy, ln=12)
-    rf.close()
 
 
 def visual_front_post():
@@ -719,7 +676,9 @@ def visual_front_post():
 
     ted_field = ted_field_calc(y_ln, z_ln, I_ted, U_ted, 5, type_='FRONT')
 
-    plt.figure(8)
+    global gph_num
+    gph_num += 1
+    plt.figure(gph_num)
     name = 'Вид спереди постоянное'
     all_f = [el[0][0] * el[0][1] for el in ted_field]
     plt.subplot(1, 2, 1)
@@ -762,7 +721,8 @@ def visual_front_post():
 
     y_ln, z_ln = y_kab, z_kab
 
-    plt.figure(9)
+    gph_num += 1
+    plt.figure(gph_num)
     name = 'Вид спереди кабина постоянное экран'
     plt.subplot(1, 3, 1)
     kab_lines_front()
@@ -777,26 +737,6 @@ def visual_front_post():
     show(name)
 
     print('График построен.')
-
-    def table_out(znach, ln=12):
-        for y in y_ln:
-            print(f'{y:.3f}'.ljust(ln), end='', file=rf)
-        print('y / z\n', file=rf)
-        for no, y_list in enumerate(znach):
-            for dt in y_list:
-                print(f'{dt:.3f}'.ljust(ln), end='', file=rf)
-            print(f'| {z_ln[no]:.3f}', file=rf)
-        print('\n', file=rf)
-
-    rf = open('postoyannoe_pole.txt', 'w')
-
-    print('МАГНИТНОЕ ПОЛЕ\n', file=rf)
-    table_out(magnetic)
-    print('ЭЛЕКТРИЧЕСКОЕ ПОЛЕ\n', file=rf)
-    table_out(electric)
-    print('ЭНЕРГИЯ\n', file=rf)
-    table_out(energy, ln=14)
-    rf.close()
 
 
 # ВЫВОД ПАРАМЕТРОВ
@@ -813,6 +753,7 @@ print(f'Высота среза: {z_graph} метров')
 
 # ПОСТРОЕНИЕ ГРАФИКА
 
+gph_num = 0
 print('\nБез электровоза')
 cont_f_up = visual_up()
 
@@ -829,11 +770,13 @@ visual_front_post()
 
 # РАСЧЁТ СТАТИСТИКИ
 
+print('СТАТИСТИКА\n')
+
 S = (a * b / 3600) ** 1 / 2
 p = ti / 24  # статистическая вероятность воздействия
 
-chel_f_per = [{fr: (magnetic_calc(y_chel, floor+0.7, fr), electric_calc(y_chel, floor+0.7, fr)) for fr in harm.keys()},
-              (x_chel, y_chel, floor+0.7)]
+chel_f_per = [{fr: (magnetic_calc(y_chel, z_chel, fr), electric_calc(y_chel, z_chel, fr)) for fr in harm.keys()},
+              (x_chel, y_chel, z_chel)]
 no_ekran_per = full_field(chel_f_per)[2]
 print('\nПеременное поле без экрана: %.4f' % no_ekran_per)
 

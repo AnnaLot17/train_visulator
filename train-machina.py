@@ -31,9 +31,7 @@ ti = 1  # длительность пребывания работника на 
 chel = {}
 
 # КОНСТАНТЫ
-#todo
-# dis = 80  # дискретизация графиков
-dis = 20  # дискретизация графиков
+dis = 60  # дискретизация графиков
 harm = {50: [1, 1],
         150: [0.3061, 0.400],
         250: [0.1469, 0.115],
@@ -180,6 +178,7 @@ koef_ekr_e_splosh = ke_metal
 
 k_post_ekr_e_setka = 55.45 + 20 * log(ds ** 2 * metal_sigma / s_, 10)
 k_post_ekr_h_setka = exp(pi * d_v / s_)
+
 
 # ШИНЫ И ОБОРУДОВАНИЕ ДЛЯ РАСЧЁТОВ
 
@@ -558,7 +557,7 @@ def triang_draw(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb
 
 def show(name):
     mng = plt.get_current_fig_manager()
-    # mng.window.state('zoomed') todo
+    mng.window.state('zoomed')
     file_name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png"
     plt.savefig(file_name)
 
@@ -696,12 +695,12 @@ def visual_up_post(z):
     
 
 def energy_pass(x, y, z, okna=False):
+    # так как значения внешнего поля с учётом экрана малы по сравнению с полем оборудования,
+    # без окон для ускорения расчётов, берём среднее значние полученное из расчёта кабины
     def fr_make():
         h = 50
         e = 6000
         return {f: [h*harm[f][0]/kh_metal[f], e*harm[f][1]/ke_metal] for f in harm.keys()}
-        
-    # TODO внешнее поле в зависимости от х
     return [fr_make(), (x, y, z)]
 
 
@@ -765,10 +764,10 @@ def visual_front():
                    }
 
         ch_per_set, ch_post_set, ch_per_sp, ch_post_sp =\
-            [e for e in ekran_per_setka if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0],\
-            [e[0] for e in ekran_post_setka if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0],\
-            [e for e in ekran_per_splosh if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0],\
-            [e[0] for e in ekran_post_splosh if (e[1][1] < -y_chel) and (e[1][2] > z_chel)][0]
+            [e for e in ekran_per_setka if (e[1][1] > y_chel) and (e[1][2] > z_chel)][0],\
+            [e[0] for e in ekran_post_setka if (e[1][1] > y_chel) and (e[1][2] > z_chel)][0],\
+            [e for e in ekran_per_splosh if (e[1][1] > y_chel) and (e[1][2] > z_chel)][0],\
+            [e[0] for e in ekran_post_splosh if (e[1][1] > y_chel) and (e[1][2] > z_chel)][0]
 
         ch_per_set = full_energy(ch_per_set)[0]
         ch_per_sp = full_energy(ch_per_sp)[0]
@@ -804,6 +803,7 @@ def visual_front():
 
 
 # ПОСТРОЕНИЕ ГРАФИКА
+
 
 SZ = {1: 'кабина',
       x_vu1 - 0.5 * l_vu: 'ВУ_СР ближние',

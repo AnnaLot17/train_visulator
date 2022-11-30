@@ -1,9 +1,26 @@
 from math import pi, log, exp, atan
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.tri as tri
+# import matplotlib.tri as tri
 from datetime import datetime
+import matplotlib.colors as colors
 
+
+
+#TODO то что в дециьеллах - перевести в разы (это где сплош)
+#TODO рисунки оборудования по срезам
+#TODO один файл с рисунками и один в цифрах
+# TODO тэд ОБ ДВА пола + два экрана
+# TODO вместо трианг точки
+
+# добавить ПР 835х940х955 мм ток 1270 напр 1500
+# два ТЭД
+
+# TODO ВОПРОСЫ
+# два ТЭД - это на Машине как?
+# семь шин сверху не видны
+# показать как оно треугольниками и как оно точками
+# что там по децибеллам правильно ли
 
 '''
 ОПИСАНИЕ
@@ -23,7 +40,7 @@ visual_front() - построение вида сбоку по срезам. В 
 # СТАТИСТИЧЕСКИЕ ДАННЫЕ
 x_chel = 0.9  # положение человека по оси х
 y_chel = 1.2 - 0.3  # положение человека по оси y
-z_chel = 2 + 1.5  # положение человека по оси  z
+z_chel = 2 + 1.5  # положение человека по оси z
 z_chair = 2 + 1.2  # сидушка стула
 a = 1.75  # высота человека метры
 b = 80  # масса человека килограммы
@@ -31,7 +48,8 @@ ti = 1  # длительность пребывания работника на 
 chel = {}
 
 # КОНСТАНТЫ
-dis = 60  # дискретизация графиков
+#todo dis = 60  # дискретизация графиков
+dis = 20  # дискретизация графиков
 harm = {50: [1, 1],
         150: [0.3061, 0.400],
         250: [0.1469, 0.115],
@@ -48,9 +66,9 @@ all_length = 15.2  # длина всего локомотива
 width = 2.8  # ширина кабины
 height = 2.6  # высота кабины
 floor = 2  # расстояние от земли до дна кабины
-kor_w = 0.6  # ширина коридора
+kor_w = 0.5  # ширина коридора
 
-metal_mu = 1000  # относительная магнитная проницаемость стали
+metal_mu = 400  # относительная магнитная проницаемость стали
 metal_t = 0.0025  # толщина стали
 metal_sigma = 10 ** 7  # удельная проводимость стали
 v_kab = all_length * width * height
@@ -65,26 +83,33 @@ ke_metal = 20 * log(60 * pi * metal_t * metal_sigma, 10)
 # z - от пола
 
 x_tt = 4.500  # тяговый трансформатор
-y_tt = 0.600 + 0.600 - 0.265
+y_tt = 0.600 + 0.800 - 0.7
 l_tt = 1.420
 l_sh_tt = 1.1
 w_tt = 0.7
 h_tt = 1.265
 d_tt = 0.3
 
+x_pr = 4.8  # переходной реактор
+l_pr = 0.835
+y_pr = 1.2
+w_pr = 0.940
+z_pr = 0.650
+h_pr = 0.955
+
 x_gk = x_tt + 0.132  # главный контроллер
-y_gk = 0.600 + 0.600
+y_gk = 0.600 + 0.8
 z_gk = 0.5
 l_gk = 1.155
 w_gk = 0.880
 h_gk = 0.735
 
 x_mt = x_tt + 1.420  # медная труба
-y_mt = y_tt
+y_mt = y_tt + w_tt
 
 x_vu1 = 3.700  # выпрямительная установка
 x_vu2 = 6.700
-y_vu1 = 0.600 + 0.15 - 0.2
+y_vu1 = 0.600 + 0.15
 y_vu2 = y_vu1 + 1.4
 l_vu = 1.120
 h_vu = 0.4472
@@ -125,6 +150,10 @@ U_cp_td = 950
 
 I_tt = 750
 U_tt = 1218
+
+
+I_pr = 1270
+U_pr = 1500
 
 I_gk = 1300
 U_gk = 3000
@@ -209,6 +238,8 @@ sh_gk_vu = [[(x_gk, y_gk + h_gk, z_gk), (0, 0.5, 0)],
             ]
 
 tt = [[x_tt, x_tt + l_tt, y_tt, y_tt + w_tt, 0.5, 0.5 - h_tt]]
+
+pr = [[x_pr, x_pr+l_pr, y_pr, y_pr+w_pr, z_pr, z_pr+h_pr]]
 
 gk = [[x_gk, x_gk + l_gk, y_gk, y_gk + w_gk, z_gk, z_gk + h_gk]]
 
@@ -360,7 +391,7 @@ def oborud_ted(v1arr, v2arr, v3, I, U, n=n_td, type_='FRONT'):
     nodes_x = [length + dx + 0.5 * r_td * np.cos(ap) for dx in [x_td1, x_td1 + kol_par, x_td2, x_td2 + kol_par]
                for ap in np.linspace(0, 2 * pi, ds)]
     nodes_z = [floor + z_td + 0.5 * r_td * np.sin(ap) for ap in np.linspace(0, 2 * pi, ds)]
-    nodes_y = [td - td_p for td in [dy_td, -dy_td] for td_p in np.linspace(-0.5 * l_td, 0.5 * l_td, 4)]
+    nodes_y = [td_p for td_p in np.linspace(-0.5 * l_td, 0.5 * l_td, 4)]
     points = [[x_, y_, z_] for z_ in nodes_z for y_ in nodes_y for x_ in nodes_x]
 
     x_cab = np.linspace(length, all_length, 40)
@@ -518,36 +549,31 @@ def lines_ted(color, type_='FRONT'):
     r = 0.5 * r_td
     w = 0.5 * width
     if type_ == 'FRONT':
-        h_lines = [[z, y - l, y + l]
-                   for z in [z_td - r, z_td + r] for y in [w - dy_td, w + dy_td]]
-        v_lines = [[y + dy, z_td - r, z_td + r] for dy in [l, -l]
-                   for y in [w - dy_td, w + dy_td]]
+        h_lines = [[z, w - l, w + l]
+                   for z in [z_td - r, z_td + r]]
+        v_lines = [[w + dy, z_td - r, z_td + r] for dy in [l, -l]]
     else:
-        h_lines = [[y, x - r, x + r] for dy in [-l, l] for y in [w - dy_td + dy, w + dy_td + dy]
+        h_lines = [[y, x - r, x + r] for y in [w-l, w+l]
                    for x in [x_td1, x_td1 + kol_par, x_td2, x_td2 + kol_par]]
-        v_lines = [[x + dx, y - l, y + l] for y in [w - dy_td, w + dy_td] for dx in [r, -r]
+        v_lines = [[x + dx, w - l, w + l]for dx in [r, -r]
                    for x in [x_td1, x_td1 + kol_par, x_td2, x_td2 + kol_par]]
 
     do_draw(h_lines, v_lines, color, type_)
 
 
-def make_triang(x_arr, y_arr):
-    nodes_x = [x_ for _ in y_arr for x_ in x_arr]
-    nodes_y = [y_ for y_ in y_arr for _ in x_arr]
-    elements = [[i + j * dis, i + 1 + j * dis, (j + 1) * dis + i + 1] for j in range(0, dis - 1) for i in
-                range(0, dis - 1)]
-    elements.extend(
-        [[i + j * dis, (j + 1) * dis + i, (j + 1) * dis + i + 1] for j in range(0, dis - 1) for i in range(0, dis - 1)])
-    return tri.Triangulation(nodes_x, nodes_y, elements)
+def point_draw(scalar, x_ln, y_ln, name_, x_lb='Ось x, метры', y_lb='Ось y, метры', lv=5):
+    Xmin = x_ln[0]
+    Xmax = x_ln[-1]
+    Ymin = y_ln[0]
+    Ymax = y_ln[-1]
 
+    znach = np.array(scalar).reshape(len(y_ln), len(x_ln))
 
-def triang_draw(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='Ось y, метры', lv=5):
-    plt.axis('equal')
-    # plt.tricontourf(triangulation, scalar_, cmap='YlOrRd', norm=colors.LogNorm())
-    plt.tricontourf(triangulation, scalar_, cmap='YlOrRd')
+    if lv:
+        ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=lv)
+        plt.clabel(ct, fontsize=10)
+    plt.imshow(znach, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95, norm=colors.LogNorm())
     plt.colorbar()
-    tcf = plt.tricontour(triangulation, scalar_, alpha=0.75, colors='black', linestyles='dotted', levels=lv)
-    plt.clabel(tcf, fontsize=10)
 
     plt.xlabel(x_lb)
     plt.ylabel(y_lb)
@@ -557,7 +583,7 @@ def triang_draw(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb
 
 def show(name):
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+    # mng.window.state('zoomed')
     file_name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png"
     plt.savefig(file_name)
 
@@ -567,13 +593,11 @@ def visual_up_per():
 
     Xmin = 0
     Xmax = all_length
-    Ymax = 0.5 * width
+    Ymax = -0.5 * width
     Ymin = -Ymax
 
     x_ln = np.linspace(Xmin, Xmax, dis, endpoint=True)
     y_ln = np.linspace(Ymin, Ymax, dis, endpoint=True)
-
-    tr = make_triang(x_ln, y_ln)
 
     print('Расчёт поля переменного тока.....')
     print('Расчёт поля шин...')
@@ -582,11 +606,14 @@ def visual_up_per():
     mt = shina(mednaya_truba, x_ln, y_ln, z_graph, I_mt, U_mt, type_='UP', ver_='PER')
     print('Расчёт поля оборудования...')
     gk_f = oborud_per(gk, x_ln, y_ln, z_graph, I_gk, U_gk, type_='UP')
+    pr_f = oborud_per(pr, y_ln, y_ln, z_graph, I_pr, U_pr, type_='UP')
 
-    ks_f = [energy_pass(x, y, z_graph) for y in y_ln for x in x_ln]
+    # ks_f = [energy_pass(x, y, z_graph) for y in y_ln for x in x_ln]
 
-    field_ekran = [ekran(el, viz='UP') for el in field_sum_per(tt_gk, gk_vu, gk_f, mt)]
-    field = field_sum_per(field_ekran, ks_f)
+    field = [ekran(el, viz='UP') for el in field_sum_per(tt_gk, gk_vu, gk_f, mt, pr_f)]
+
+    # field_ekran = [ekran(el, viz='UP') for el in field_sum_per(tt_gk, gk_vu, gk_f, mt)]
+    # field = field_sum_per(field_ekran, ks_f)
 
     summar = [full_energy(el) for el in field]
     magnetic = [el[0][0] for el in summar]
@@ -594,11 +621,14 @@ def visual_up_per():
     energy = [el[0][0] * el[0][1] for el in summar]
 
     def figure_draw(znach, name_):
-        triang_draw(tr, znach, name_)
+        point_draw(znach, x_ln, y_ln, name_)
         lines_shina(sh_tt_gk, 'turquoise', type_='UP')
         lines_shina(sh_gk_vu, 'c', type_='UP')
         lines_oborud(gk, 'lime', type_='UP')
         lines_oborud(tt, 'white', type_='UP')
+        lines_oborud(pr, 'pink', type_='UP')
+        lines_oborud(vu, 'aqua', type_='UP')
+
         lines_corp(Xmin, Xmax, Ymin, Ymax)
 
     global gph_num
@@ -621,7 +651,7 @@ def visual_up_per():
         j += 1
         plt.subplot(4, 2, j)
         data = [dt[0][f][0] for dt in field]
-        triang_draw(tr, data, '', y_lb=str(fr), lv=3)
+        point_draw(data, x_ln, y_ln, '', y_lb=str(fr), lv=0)
     plt.suptitle(name)
     show('гарм_маг_верх')
 
@@ -633,7 +663,7 @@ def visual_up_per():
         j += 1
         plt.subplot(4, 2, j)
         data = [dt[0][f][1] for dt in field]
-        triang_draw(tr, data, '', y_lb=str(fr), lv=3)
+        point_draw(data, x_ln, y_ln, '', y_lb=str(fr), lv=0)
     plt.suptitle(name)
     show('гарм_эл_верх')
 
@@ -647,10 +677,10 @@ def visual_up_post(z):
     x_ln = np.linspace(Xmin, Xmax, dis, endpoint=True)
     y_ln = np.linspace(Ymin, Ymax, dis, endpoint=True)
 
-    tr = make_triang(x_ln, y_ln)
+    # tr = make_triang(x_ln, y_ln)
 
     def figure_draw(znach, name_):
-        triang_draw(tr, znach, name_)
+        point_draw(znach, x_ln, y_ln, name_)
         lines_shina(sh_vu_cp, 'darkcyan', type_='UP')
         lines_shina(sh_cp_td, 'royalblue', type_='UP')
         lines_oborud(vu, 'aqua', type_='UP')
@@ -695,12 +725,9 @@ def visual_up_post(z):
     
 
 def energy_pass(x, y, z, okna=False):
-    # так как значения внешнего поля с учётом экрана малы по сравнению с полем оборудования,
-    # без окон для ускорения расчётов, берём среднее значние полученное из расчёта кабины
+    # на данном этапе считаем что внешнее поле не проходит в кабину и кузов
     def fr_make():
-        h = 50
-        e = 6000
-        return {f: [h*harm[f][0]/kh_metal[f], e*harm[f][1]/ke_metal] for f in harm.keys()}
+        return {f: [0, 0] for f in harm.keys()}
     return [fr_make(), (x, y, z)]
 
 
@@ -715,7 +742,7 @@ def visual_front():
     y_ln = np.linspace(Ymin, Ymax, dis)
     z_ln = np.linspace(Zmin, Zmax, dis)
 
-    tr_kab = make_triang(y_ln, z_ln)
+    # tr_kab = make_triang(y_ln, z_ln)
 
     def eng(en):
         fe = full_energy(en)
@@ -728,7 +755,7 @@ def visual_front():
         print(f"Построение среза {no} м")
         print('Расчёт поля переменного тока...')
 
-        ks_f = [energy_pass(no, y, z) for z in z_ln for y in y_ln]
+        # ks_f = [energy_pass(no, y, z) for z in z_ln for y in y_ln]
 
         print('Расчёт поля шин...')
         tt_gk = shina(sh_tt_gk, y_ln, z_ln, no, I_tt_gk, U_tt_gk, ver_='PER')
@@ -736,8 +763,9 @@ def visual_front():
         mt = shina(mednaya_truba, y_ln, z_ln, no, I_mt, U_mt, ver_='PER')
         print('Расчёт поля оборудования...')
         gk_f = oborud_per(gk, y_ln, z_ln, no, I_gk, U_gk)
+        pr_f = oborud_per(pr, y_ln, z_ln, no, I_pr, U_pr)
 
-        field_per = field_sum_per(tt_gk, gk_vu, gk_f, mt)
+        field_per = field_sum_per(tt_gk, gk_vu, gk_f, mt, pr_f)
 
         print('Расчёт поля постоянного тока...')
         print('Расчёт поля шин...')
@@ -751,8 +779,12 @@ def visual_front():
         ted_f = oborud_ted(y_ln, z_ln, no, I_td, U_td, n_td)
 
         print('Расчёт экрана...')
-        ekran_per_setka = field_sum_per([ekran(elm) for elm in field_per], ks_f)
-        ekran_per_splosh = field_sum_per([ekran(elm, tp='SPLOSH') for elm in field_per], ks_f)
+        # задел под возможность добавить внешнее поле
+        # ekran_per_setka = field_sum_per([ekran(elm) for elm in field_per], ks_f)
+        # ekran_per_splosh = field_sum_per([ekran(elm, tp='SPLOSH') for elm in field_per], ks_f)
+
+        ekran_per_setka = [ekran(elm) for elm in field_per]
+        ekran_per_splosh = [ekran(elm, tp='SPLOSH') for elm in field_per]
 
         ekran_post_setka = field_sum_post([ekran(elm, ver='POST') for elm in field_post], ted_f)
         ekran_post_splosh = field_sum_post([ekran(elm, tp='SPLOSH', ver='POST') for elm in field_post], ted_f)
@@ -784,7 +816,8 @@ def visual_front():
             j += 1
             plt.subplot(3, 3, j)
             data = [dt[0][f][0] * dt[0][f][1] for dt in ekran_per_setka]
-            triang_draw(tr_kab, data, '', y_lb=str(f))
+            # triang_draw(tr_kab, data, '', y_lb=str(f))
+            point_draw(data, y_ln, z_ln, '', y_lb=str(f))
         plt.suptitle(name)
         show(f'гарм_{SZ[no]}_м')
 
@@ -794,7 +827,8 @@ def visual_front():
         name = f'Энергия вид сбоку. Срез {SZ[no]}'
         for nam, val in koridor.items():
             plt.subplot(2, 2, i)
-            triang_draw(tr_kab, val, '')
+            # triang_draw(tr_kab, val, '')
+            point_draw(val, y_ln, z_ln, '')
             lines_corp(0.5 * width - kor_w, Ymax, Zmax, Zmin)
             plt.ylabel(nam)
             i += 1
@@ -804,11 +838,15 @@ def visual_front():
 
 # ПОСТРОЕНИЕ ГРАФИКА
 
+# todo
+# SZ = {1: 'кабина',
+#       x_vu1 - 0.5 * l_vu: 'ВУ_СР ближние',
+#       x_tt + 0.5 * x_tt: 'ТТ_ГК',
+#       x_vu2 + 0.5 * l_vu: 'ВУ_СР дальние'
+#       }
 
-SZ = {1: 'кабина',
-      x_vu1 - 0.5 * l_vu: 'ВУ_СР ближние',
-      x_tt + 0.5 * x_tt: 'ТТ_ГК',
-      x_vu2 + 0.5 * l_vu: 'ВУ_СР дальние'
+SZ = {
+      x_vu1 - 0.5 * l_vu: 'ВУ_СР ближние'
       }
 
 z_graph = 3
@@ -816,12 +854,13 @@ z_graph = 3
 gph_num = 0
 print('\nВид сверху.')
 
+# todo
 visual_up_per()
-visual_up_post(z_graph)  # построение среза на высоте пола
-visual_up_post(floor + z_td)  # построение среза на высоте ТЭД
+# visual_up_post(z_graph)  # построение среза на высоте пола
+# visual_up_post(floor + z_td)  # построение среза на высоте ТЭД
 
 print('\nВид сбоку')
-visual_front()
+# visual_front()
 
 # РАСЧЁТ СТАТИСТИКИ
 

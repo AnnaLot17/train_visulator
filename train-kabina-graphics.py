@@ -1,6 +1,5 @@
 from math import log, exp, pi, atan
 import matplotlib.pyplot as plt
-import matplotlib.tri as tri
 import numpy as np
 from datetime import datetime
 import matplotlib.colors as colors
@@ -9,6 +8,7 @@ from shapely.geometry import Polygon, LineString, Point
 plt.style.use('seaborn-white')
 cmap = 'YlOrRd'
 
+#todo логарифмы рпзы
 
 # РЕЖИМ РАБОТЫ СЕТИ
 
@@ -104,6 +104,9 @@ ke_glass = 1
 kh_metal = {frq: 20 * log(1 + (metal_sigma * 2 * pi * frq * metal_mu * metal_r * metal_t), 10)
             for frq in harm.keys()}
 ke_metal = 20 * log(60 * pi * metal_t * metal_sigma, 10)
+
+print(ke_metal, kh_metal)
+input()
 
 
 kh_post = 1 + (0.66 * metal_mu * metal_t / metal_r)
@@ -234,16 +237,20 @@ def ekran(en):
 
 def ekran_post(ext_en):
     k_h, k_e = 1, 1
-    if (ext_en[1][2] > floor) and (ext_en[1][2] < floor+height):
+    if (ext_en[1][2] > floor-1) and (ext_en[1][2] < floor+height):
         if abs(ext_en[1][1]) <= 0.5*width:
             k_h = kh_post
             k_e = ke_post
+            if ext_en[1][2] > floor:
+                k_h *= kh_post
+                k_e *= ke_post
+
     return [[ext_en[0][0] / k_h, ext_en[0][1] / k_e], ext_en[1]]
 
 
 def show(name):
     mng = plt.get_current_fig_manager()
-    mng.window.state('zoomed')
+    # mng.window.state('zoomed') todo
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
 
@@ -364,17 +371,17 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
     # разбиваем ТЭД на узлы
     nodes_x = [x_td1_sr + 0.5*r_td * np.cos(ap) for ap in np.linspace(0, 2*pi, ds)]
     nodes_z = [z_td + 0.5*r_td * np.sin(ap) for ap in np.linspace(0, 2*pi, ds)]
-    nodes_y = [td-td_p for td in [dy_td, -dy_td] for td_p in np.linspace(-0.5*l_td, 0.5*l_td, 4)]
+    nodes_y = [td-td_p for td in [0] for td_p in np.linspace(-0.5*l_td, 0.5*l_td, 4)]
 
     points = [[x_, y_, z_] for z_ in nodes_z for y_ in nodes_y for x_ in nodes_x]
 
     # разбиваем кабину на узлы
     if type_ == 'UP':
-        minus = [[x_, y_] for y_ in y_arr for x_ in x_arr]
+        minus = [[x_, y_, z_] for z_ in (floor, floor-1) for y_ in y_arr for x_ in x_arr]
     else:
         x_cab = np.linspace(0, length, 40)
         y_cab = np.linspace(-0.5*width, 0.5*width, 40)
-        minus = [[x_, y_] for y_ in y_cab for x_ in x_cab]
+        minus = [[x_, y_, z_] for z_ in (floor, floor-1) for y_ in y_cab for x_ in x_cab]
 
     def in_point(x_, y_, z_):
         H_ob, E_ob = 0, 0
@@ -384,7 +391,7 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
             E_ob += U_g / r / len(points)
 
         for m in minus:
-            r_m = ((m[0] - x_) ** 2 + (m[1] - y_) ** 2 + (floor - z_) ** 2) ** 0.5
+            r_m = ((m[0] - x_) ** 2 + (m[1] - y_) ** 2 + (m[2] - z_) ** 2) ** 0.5
             if r_m != 0:
                 E_ob += U_g / r_m / len(minus)
         return [[H_ob * n / len(points), E_ob], (x_, y_, z_)]
@@ -459,6 +466,7 @@ def kab_lines_front():
     plt.vlines(y_chel+d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
     plt.vlines(-y_chel-d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
     plt.vlines(-y_chel+d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
+
 
 def ted_lines_front():
     plt.hlines(z_td + 0.5*r_td, dy_td - 0.5*l_td, dy_td + 0.5*l_td, colors='blue', linestyles='--')
@@ -538,36 +546,39 @@ def visual_up_post():
     Ymax = -0.5 * width
     Ymin = -Ymax
 
-    dis = 40
+    dis = 60
     x_ln = np.linspace(Xmin, Xmax, dis, endpoint=True)
     y_ln = np.linspace(Ymin, Ymax, dis, endpoint=True)
 
-    nodes_x = [x_ for _ in y_ln for x_ in x_ln]
-    nodes_y = [y_ for y_ in y_ln for _ in x_ln]
-    elements = [[i + j * dis, i + 1 + j * dis, (j + 1) * dis + i + 1] for j in range(0, dis - 1) for i in
-                range(0, dis - 1)]
-    elements.extend(
-        [[i + j * dis, (j + 1) * dis + i, (j + 1) * dis + i + 1] for j in range(0, dis - 1) for i in range(0, dis - 1)])
-    tr = tri.Triangulation(nodes_x, nodes_y, elements)
+    def graph_do(znach, name_, x_lb='', y_lb=''):
+        ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
+        plt.clabel(ct, fontsize=10)
+        plt.imshow(znach, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95, norm=colors.LogNorm())
+        plt.colorbar()
+
+        plt.xlabel(x_lb)
+        plt.ylabel(y_lb)
+
+        plt.title(name_)
 
     ted_field = ted_field_calc(x_ln, y_ln, I_ted, U_ted, 5)
 
-    magnetic = [el[0][0]/kh_post for el in ted_field]
-    electric = [el[0][1]/ke_post for el in ted_field]
-    energy = [el[0][0]/kh_post * el[0][1]/ke_post for el in ted_field]
+    magnetic = np.array([el[0][0]/kh_post for el in ted_field]).reshape(len(y_ln), len(x_ln))
+    electric = np.array([el[0][1]/ke_post for el in ted_field]).reshape(len(y_ln), len(x_ln))
+    energy =  np.array([el[0][0]/kh_post * el[0][1]/ke_post for el in ted_field]).reshape(len(y_ln), len(x_ln))
 
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
     name = 'Вид сверху кабина постоянное'
     plt.subplot(1, 3, 1)
-    triang_do(tr, magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    graph_do(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
     kab_lines_up()
     plt.subplot(1, 3, 2)
-    triang_do(tr, electric, 'Электрическое', x_lb='Ось x, метры')
+    graph_do(electric, 'Электрическое', x_lb='Ось x, метры')
     kab_lines_up()
     plt.subplot(1, 3, 3)
-    triang_do(tr, energy, 'Общее', x_lb='Ось x, метры')
+    graph_do(energy, 'Общее', x_lb='Ось x, метры')
     kab_lines_up()
 
     show(name)
@@ -662,17 +673,21 @@ def visual_front_post():
 
     print('Расчёт поля от тяговых двигателей')
     dis_y, dis_z = 60, 60
-    y_ln = np.linspace(-0.6*width, 0.6*width, dis_y, endpoint=True)
-    z_ln = np.linspace(floor+height+1, 0.1, dis_z, endpoint=True)
+    Ymin, Ymax = -0.6*width, 0.6*width
+    Zmin, Zmax = floor+height+1, 0.1
+    y_ln = np.linspace(Ymin, Ymax, dis_y, endpoint=True)
+    z_ln = np.linspace(Zmin, Zmax, dis_z, endpoint=True)
 
-    nodes_y = [y_ for _ in z_ln for y_ in y_ln]
-    nodes_z = [z_ for z_ in z_ln for _ in y_ln]
-    elements = [[i + j * dis_y, i + 1 + j * dis_y, (j + 1) * dis_y + i + 1]
-                for j in range(0, dis_z - 1) for i in range(0, dis_y - 1)]
-    elements.extend(
-        [[i + j * dis_y, (j + 1) * dis_y + i, (j + 1) * dis_y + i + 1]
-         for j in range(0, dis_z - 1) for i in range(0, dis_y - 1)])
-    tr = tri.Triangulation(nodes_y, nodes_z, elements)
+    def graph_do(znach, name_, x_lb='', y_lb='', lev=5):
+        if lev:
+            ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=lev)
+            plt.clabel(ct, fontsize=10)
+        plt.imshow(znach, extent=[Ymin, Ymax, Zmax, Zmin],  cmap=cmap,  alpha=0.95, norm=colors.LogNorm())
+        plt.colorbar()
+
+        plt.xlabel(x_lb)
+        plt.ylabel(y_lb)
+        plt.title(name_)
 
     ted_field = ted_field_calc(y_ln, z_ln, I_ted, U_ted, 5, type_='FRONT')
 
@@ -680,31 +695,23 @@ def visual_front_post():
     gph_num += 1
     plt.figure(gph_num)
     name = 'Вид спереди постоянное'
-    all_f = [el[0][0] * el[0][1] for el in ted_field]
+    all_f_list = [el[0][0] * el[0][1] for el in ted_field]
+    print(len(all_f_list))
+    all_f = np.array(all_f_list).reshape(len(z_ln), len(y_ln))
     plt.subplot(1, 2, 1)
-    triang_do(tr, all_f, 'Магнитное', x_lb='Ось y, метры', y_lb='Ось z, метры')
+    graph_do(all_f, 'Энергия', x_lb='Ось y, метры', y_lb='Ось z, метры')
     fr_kab_lines()
     plt.title('Без экрана')
     front_ekran = [ekran_post(el) for el in ted_field]
 
     plt.subplot(1, 2, 2)
 
-    summar = [el[0][0] * el[0][1] for el in front_ekran]
-    triang_do(tr, summar, 'Магнитное', x_lb='Ось y, метры', y_lb='Ось z, метры')
+    summar = np.array([el[0][0] * el[0][1] for el in front_ekran]).reshape(len(z_ln), len(y_ln))
+    graph_do(summar, 'Энергия', x_lb='Ось y, метры', y_lb='Ось z, метры', lev=0)
     fr_kab_lines()
     plt.title('С экраном')
 
     show(name)
-
-    def graph_do(znach, name_, x_lb='', y_lb='', lev=5):
-        ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=lev)
-        plt.clabel(ct, fontsize=10)
-        plt.imshow(znach, extent=[Ymin, Ymax, Zmax, Zmin],  cmap=cmap,  alpha=0.95, norm=colors.LogNorm())
-        plt.colorbar()
-
-        plt.xlabel(x_lb)
-        plt.ylabel(y_lb)
-        plt.title(name_)
 
     Ymin, Ymax = -0.5*width, 0.5*width
     Zmax, Zmin = floor, floor+height

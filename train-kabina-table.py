@@ -4,6 +4,8 @@ from shapely.geometry import Polygon, LineString, Point
 
 # РЕЖИМ РАБОТЫ СЕТИ
 
+# TODo логарифмы разы
+
 I = 300  # cуммарная сила тока, А
 U = 30000  # cуммарное напряжение, В
 
@@ -226,10 +228,14 @@ def ekran(en):
 
 def ekran_post(ext_en):
     k_h, k_e = 1, 1
-    if (ext_en[1][2] > floor) and (ext_en[1][2] < floor+height):
+    if (ext_en[1][2] > floor-1) and (ext_en[1][2] < floor+height):
         if abs(ext_en[1][1]) <= 0.5*width:
             k_h = kh_post
             k_e = ke_post
+            if ext_en[1][2] > floor:
+                k_h *= kh_post
+                k_e *= ke_post
+
     return [[ext_en[0][0] / k_h, ext_en[0][1] / k_e], ext_en[1]]
 
 
@@ -254,17 +260,17 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
     # разбиваем ТЭД на узлы
     nodes_x = [x_td1_sr + 0.5*r_td * np.cos(ap) for ap in np.linspace(0, 2*pi, ds)]
     nodes_z = [z_td + 0.5*r_td * np.sin(ap) for ap in np.linspace(0, 2*pi, ds)]
-    nodes_y = [td-td_p for td in [dy_td, -dy_td] for td_p in np.linspace(-0.5*l_td, 0.5*l_td, 4)]
+    nodes_y = [td-td_p for td in [0] for td_p in np.linspace(-0.5*l_td, 0.5*l_td, 4)]
 
     points = [[x_, y_, z_] for z_ in nodes_z for y_ in nodes_y for x_ in nodes_x]
 
     # разбиваем кабину на узлы
     if type_ == 'UP':
-        minus = [[x_, y_] for y_ in y_arr for x_ in x_arr]
+        minus = [[x_, y_, z_] for z_ in (floor, floor-1) for y_ in y_arr for x_ in x_arr]
     else:
         x_cab = np.linspace(0, length, 40)
         y_cab = np.linspace(-0.5*width, 0.5*width, 40)
-        minus = [[x_, y_] for y_ in y_cab for x_ in x_cab]
+        minus = [[x_, y_, z_] for z_ in (floor, floor-1) for y_ in y_cab for x_ in x_cab]
 
     def in_point(x_, y_, z_):
         H_ob, E_ob = 0, 0
@@ -274,7 +280,7 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
             E_ob += U_g / r / len(points)
 
         for m in minus:
-            r_m = ((m[0] - x_) ** 2 + (m[1] - y_) ** 2 + (floor - z_) ** 2) ** 0.5
+            r_m = ((m[0] - x_) ** 2 + (m[1] - y_) ** 2 + (m[2] - z_) ** 2) ** 0.5
             if r_m != 0:
                 E_ob += U_g / r_m / len(minus)
         return [[H_ob * n / len(points), E_ob], (x_, y_, z_)]
@@ -346,7 +352,7 @@ def visual_front_post():
 
     ted_field = ted_field_calc(y_ln, z_ln, I_ted, U_ted, 5, type_='FRONT')
 
-    kabina = [[el for el in ted_field if (el[1][2] == z_)] for z_ in reversed(z_ln)]
+    kabina = [[ekran_post(el) for el in ted_field if (el[1][2] == z_)] for z_ in reversed(z_ln)]
 
     magnetic = [[el[0][0] for el in z_list] for z_list in kabina]
     electric = [[el[0][1] for el in z_list] for z_list in kabina]

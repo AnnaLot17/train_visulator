@@ -8,19 +8,9 @@ import matplotlib.colors as colors
 
 
 #TODO то что в дециьеллах - перевести в разы (это где сплош)
-#TODO рисунки оборудования по срезам
 #TODO один файл с рисунками и один в цифрах
-# TODO тэд ОБ ДВА пола + два экрана
-# TODO вместо трианг точки
+#todo окнаъ
 
-# добавить ПР 835х940х955 мм ток 1270 напр 1500
-# два ТЭД
-
-# TODO ВОПРОСЫ
-# два ТЭД - это на Машине как?
-# семь шин сверху не видны
-# показать как оно треугольниками и как оно точками
-# что там по децибеллам правильно ли
 
 '''
 ОПИСАНИЕ
@@ -67,15 +57,6 @@ width = 2.8  # ширина кабины
 height = 2.6  # высота кабины
 floor = 2  # расстояние от земли до дна кабины
 kor_w = 0.5  # ширина коридора
-
-metal_mu = 400  # относительная магнитная проницаемость стали
-metal_t = 0.0025  # толщина стали
-metal_sigma = 10 ** 7  # удельная проводимость стали
-v_kab = all_length * width * height
-metal_r = (v_kab * 3 / 4 / pi) ** 1 / 3
-kh_metal = {frq: 10 * log(1 + (metal_sigma * 2 * pi * frq * metal_mu * metal_r * metal_t / 2) ** 2, 10)
-            for frq in harm.keys()}
-ke_metal = 20 * log(60 * pi * metal_t * metal_sigma, 10)
 
 # УЗЛЫ ОБОРУДОВАНИЯ ИХ ТОКИ И НАПРЯЖЕНИЯ
 # x - от стенки кабины
@@ -175,37 +156,87 @@ n_td = 5
 b_v = 2.6  # ширина экрана камеры, м
 l_v = 12.7  # длина экрана камеры, м
 h_v = 2.2  # высота экрана камеры, м
-d_v = 0.001  # толщина сетки, м
+d_v = 1  # толщина сетки мм
 
 b_z = 3.5  # ширина экрана кузова, м
 l_z = 15.2  # длина экрана кузова, м
 h_z = 2.8  # высота экрана кузова, м
-d_z = 0.025  # толщина экрана кузова, м
+d = 0.0025  # толщина экрана кузова, м
 
 Z0 = 377  # волновое сопротивление поля, Ом
-ds = 0.001  # диаметр провода сетки, м
 ro = 0.15  # удельное сопротивление материала сетки, Ом*м
-s_ = 0.015  # шаг сетки, м
+rs = 15 / 1000  # шаг сетки, м
+sc = 0.5 / 1000  # диаметр провода сетки, м
 
-re_v = 0.62 * (b_v * l_v * h_v) ** (1 / 3)  # эквивалетныый радиус экрана камеры
-re_z = 0.62 * (b_z * l_z * h_z) ** (1 / 3)  # эквивалетныый радиус экрана кабины
+sigma = 10 ** 7  # удельная проводимость стали, см/м #todo правда? см/м это адекватно?
+v_kab = 1.3 * 2.8 * 2.6  # объём кабины, м
+r_kab = (v_kab * 3 / (4 * pi)) ** (1 / 3)  # эквивалентный радиус кабины, м
+v_mash = 13.9 * 2.8 * 2.6  # объём машинного отделения, м
+r_mash = (v_mash * 3 / (4 * pi)) ** (1 / 3)  # эквивалентный радиус машинного отделения, м
+v_vvk = 12.7 * 2.2 * 2.6  # объём камеры, м
+r_vvk = (v_vvk * 3 / (4 * pi)) ** (1 / 3)  # эквивалентный радиус камеры, м
+e0 = 8.85 * (10 ** -12)  # диэлектрическая постоянная
 
-koef_ekr_h_setka, koef_ekr_e_setka = {}, {}
+ke_post_splosh = (60 * pi * d * sigma)
+
+
+# # -- магнитное
+
+# сделано
+kh_splosh_kab = (1 + 1000 * d / (2 * r_kab)) ** 2
+kh_splosh_mash = (1 + 1000 * d / (2 * r_mash)) ** 2
+kh_splosh_vvk = (1 + 400 * d / (2 * r_vvk)) ** 2
+
+
+y = rs / (2*pi*r_vvk) * (log(rs/sc) - 1.25)
+ke_per_setka = 1 / (3*y / (1 + 3*y))
+
+
+kh_per_setka, ke_per_splosh  = {}, {}
+C = exp(2 * pi * sc / (rs - 2 * sc))
+print("Электричество сплошное переменное")
+print("Разы")
 for fr in harm.keys():
-    lam = 300000000 / fr  # длина волны
-    Zh = Z0 * 2 * pi * re_v / lam
-    ekr_h = 0.012 * (d_v * Zh / ro) ** 0.5 * (lam / re_v) ** (1 / 3) * exp(pi * ds / (s_ - ds))
-    koef_ekr_h_setka[fr] = 1 / ekr_h
+    f = fr / 1000000
+    lam = 300000000 / f  # длина волны
 
-    delta = 0.016 / (fr ** 0.5)
-    ekr_e = 60 * pi * 1 * delta / (ro * s_ * 2.83 * (ds ** 0.5)) * exp(ds / delta)
-    koef_ekr_e_setka[fr] = ekr_e
+    Zh = Z0 * 2 * r_vvk * pi / lam
+    Ze = Z0 * lam / (2 * pi * r_vvk)
 
-koef_ekr_h_splosh_v = 1 + (0.66 * metal_mu * d_v / re_v)
-koef_ekr_h_splosh_z = 1 + (0.66 * metal_mu * d_z / re_z)
-koef_ekr_e_splosh = ke_metal
+    A = (d * sigma * Zh) ** 0.5
+    B = (lam / r_vvk) ** (1 / 3)
+    kh_per_setka[fr] = A*B*C*0.024
 
-k_post_ekr_e_setka = 55.45 + 20 * log(ds ** 2 * metal_sigma / s_, 10)
+    ke_per_splosh[fr] = 1 + 0.5*Ze*sigma*r_vvk
+
+    print(f"{fr}: {ke_per_splosh[fr]:.2e}")
+
+print()
+print("Децибеллы")
+for fr in harm.keys():
+    print(f"{fr}: {20*log(ke_per_splosh[fr], 10):.2f}")
+
+input()
+
+
+#     lam = 300000000 / fr  # длина волны
+#     Zh = Z0 * 2 * pi * r / lam
+#     ekr_h = 0.012 * (d_v * Zh / ro) ** 0.5 * (lam / r) ** (1 / 3) * exp(pi * ds / (s_ - ds))
+#     # kh_per_setka[fr] = 1 / ekr_h
+#
+#     delta = 0.016 / (fr ** 0.5)
+#     ekr_e = 60 * pi * 1 * delta / (ro * s_ * 2.83 * (ds ** 0.5)) * exp(ds / delta)
+#     # ke_per_setka[fr] = ekr_e
+#     print(1 / ekr_h, ekr_e)
+
+
+
+
+
+
+input()
+
+k_post_ekr_e_setka = 55.45 + 20 * log(ds ** 2 * sigma / s_, 10)
 k_post_ekr_h_setka = exp(pi * d_v / s_)
 
 
@@ -411,9 +442,12 @@ def oborud_ted(v1arr, v2arr, v3, I, U, n=n_td, type_='FRONT'):
                 E_ob += U / r_m / len(minus)
 
         h, e = H_ob * n / len(points), E_ob
-        if z_ > floor:
+        if z_ > floor - 1:
             h /= koef_ekr_h_splosh_v
             e /= koef_ekr_e_splosh
+            if z_ > floor:
+                h /= koef_ekr_h_splosh_v
+                e /= koef_ekr_e_splosh
         return [[h, e], (x_, y_, z_)]
 
     if type_ == 'FRONT':
@@ -560,6 +594,29 @@ def lines_ted(color, type_='FRONT'):
 
     do_draw(h_lines, v_lines, color, type_)
 
+def kab_lines_front():
+    d = 0.13
+    cl = 'blue'
+    plt.hlines(z_chair, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair-0.05, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair-0.05, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+
+    plt.vlines(y_chel-d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
+    plt.vlines(y_chel+d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
+    plt.vlines(-y_chel-d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
+    plt.vlines(-y_chel+d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
+
+    d = 0.12
+    plt.hlines(z_chair+0.05, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair+0.05+2*d, y_chel-d, y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair+0.05, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair+0.05+2*d, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+
+    plt.vlines(y_chel-d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
+    plt.vlines(y_chel+d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
+    plt.vlines(-y_chel-d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
+    plt.vlines(-y_chel+d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
 
 def point_draw(scalar, x_ln, y_ln, name_, x_lb='Ось x, метры', y_lb='Ось y, метры', lv=5):
     Xmin = x_ln[0]
@@ -827,9 +884,40 @@ def visual_front():
         name = f'Энергия вид сбоку. Срез {SZ[no]}'
         for nam, val in koridor.items():
             plt.subplot(2, 2, i)
-            # triang_draw(tr_kab, val, '')
             point_draw(val, y_ln, z_ln, '')
             lines_corp(0.5 * width - kor_w, Ymax, Zmax, Zmin)
+
+            if 'переменный' in nam:
+                if 'ВУ_СР ближние' in SZ[no]:
+                    lines_shina(sh_gk_vu, 'c')
+                    lines_oborud(vu, 'aqua')
+                elif 'ТТ_ГК' in SZ[no]:
+                    lines_shina(sh_tt_gk, 'turquoise')
+                    lines_oborud(gk, 'lime')
+                    lines_oborud(tt, 'white')
+                    lines_oborud(pr, 'pink')
+                elif 'ВУ_СР дальние' in SZ[no]:
+                    lines_shina(mt, 'blue')
+                    lines_oborud(vu, 'aqua')
+                else:
+                    kab_lines_front()
+            else:
+                if 'ВУ_СР ближние' in SZ[no]:
+                    lines_oborud(vu, 'aqua')
+                    lines_oborud(cp, 'indigo')
+                    lines_shina(sh_vu_cp, 'darkcyan')
+                    lines_shina(sh_cp_td, 'royalblue')
+                elif 'ТТ_ГК' in SZ[no]:
+                    pass
+                elif 'ВУ_СР дальние' in SZ[no]:
+                    lines_shina(sh_vu_cp, 'darkcyan')
+                    lines_oborud(vu, 'aqua')
+                    lines_oborud(cp, 'indigo')
+                    lines_shina(sh_cp_td, 'royalblue')
+                else:
+                    lines_ted('darkblue')
+                    kab_lines_front()
+
             plt.ylabel(nam)
             i += 1
         plt.suptitle(name)
@@ -838,7 +926,7 @@ def visual_front():
 
 # ПОСТРОЕНИЕ ГРАФИКА
 
-# todo
+# todo также проверить кабину
 # SZ = {1: 'кабина',
 #       x_vu1 - 0.5 * l_vu: 'ВУ_СР ближние',
 #       x_tt + 0.5 * x_tt: 'ТТ_ГК',

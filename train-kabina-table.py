@@ -1,10 +1,8 @@
-from math import log, pi, atan
+from math import log, pi, atan, exp
 import numpy as np
 from shapely.geometry import Polygon, LineString, Point
 
 # РЕЖИМ РАБОТЫ СЕТИ
-
-# TODo логарифмы разы
 
 I = 300  # cуммарная сила тока, А
 U = 30000  # cуммарное напряжение, В
@@ -79,30 +77,26 @@ max_kp = Point(0.5*width, sbor[2]).distance(Point(xp_kp, h_kp))
 min_up = Point(-0.5*width, sbor[3]).distance(Point(xp_up, h_up))
 max_up = Point(-0.5*width, sbor[2]).distance(Point(xp_up, h_up))
 
-metal_mu = 1000  # относительная магнитная проницаемость стали
-glass_mu = 0.99  # относительная магнитная проницаемость стекла
-metal_t = 0.0025  # толщина стали
-glass_t = 0.015  # толщина стекла
-metal_sigma = 10 ** 7  # удельная проводимость стали
-glass_sigma = 10 ** -12  # удельная проводимость стекла
+Z0 = 377  # волновое сопротивление поля, Ом
+mu = 1000  # относительная магнитная проницаемость стали
+dst = 0.0025  # толщина стали м
+sigma = 10 ** 7  # удельная проводимость стали
 
 
-v_kab = length * width * height
-metal_r = (v_kab * 3 / 4 / pi) ** 1 / 3
-glass_r = ((2.86+0.8) * 3 / 4 / pi) ** 1 / 3
+v_kab = 1.3 * 2.8 * 2.6  # объём кабины, м
+r_kab = (v_kab * 3 / (4 * pi)) ** (1 / 3)  # эквивалентный радиус кабины, м
 
-# так как значения очень маленькие - считаем, что там где стекло, экранирования нет
-kh_glass = {frq: 1 for frq in harm.keys()}
-ke_glass = 1
-
-kh_metal = {frq: 20 * log(1 + (metal_sigma * 2 * pi * frq * metal_mu * metal_r * metal_t), 10)
-            for frq in harm.keys()}
-ke_metal = 20 * log(60 * pi * metal_t * metal_sigma, 10)
-
-
-kh_post = 1 + (0.66 * metal_mu * metal_t / metal_r)
-ke_post = ke_metal
-
+kh = (1 + 1000 * dst / (2 * r_kab)) ** 2
+ke_post = 60 * pi * dst * sigma
+ke_per = {}
+Ce = exp(2 * pi * 0.0025 / 0.01)
+for fr in harm.keys():
+    lam = 300000000 / (fr / 1000000)
+    Ze = Z0 * lam / (2 * pi * r_kab)
+    delta = 0.03 * ((10 ** -7) * lam) ** 0.5
+    A = (delta * Ze / (10 ** -7)) ** 0.5
+    B = (lam / r_kab) ** (1 / 3)
+    ke_per[fr] = 0.024 * A * B * Ce * 0.001
 
 # ОБОРУДОВАНИЕ
 
@@ -213,16 +207,16 @@ def ekran(en):
     if (abs(y) <= 0.5*width) and (z >= floor) and (z <= floor+height):
         if not kp_pass:
             for f in en[0].keys():
-                en[0][f][0][0] /= kh_metal[f]
-                en[0][f][1][0] /= ke_metal
+                en[0][f][0][0] /= kh
+                en[0][f][1][0] /= ke_per[f]
         if not nt_pass:
             for f in en[0].keys():
-                en[0][f][0][1] /= kh_metal[f]
-                en[0][f][1][1] /= ke_metal
+                en[0][f][0][1] /= kh
+                en[0][f][1][1] /= ke_per[f]
         if not up_pass:
             for f in en[0].keys():
-                en[0][f][0][2] /= kh_metal[f]
-                en[0][f][1][2] /= ke_metal
+                en[0][f][0][2] /= kh
+                en[0][f][1][2] /= ke_per[f]
     return en
 
 
@@ -230,10 +224,10 @@ def ekran_post(ext_en):
     k_h, k_e = 1, 1
     if (ext_en[1][2] > floor-1) and (ext_en[1][2] < floor+height):
         if abs(ext_en[1][1]) <= 0.5*width:
-            k_h = kh_post
+            k_h = kh
             k_e = ke_post
             if ext_en[1][2] > floor:
-                k_h *= kh_post
+                k_h *= kh
                 k_e *= ke_post
 
     return [[ext_en[0][0] / k_h, ext_en[0][1] / k_e], ext_en[1]]
@@ -419,7 +413,7 @@ Dpo = Dco / b
 print('Удельная суточная доза поглощённой энергии: %.4f' % Dpo)
 
 chel_f_post = ted_field_calc([y_chel], [z_chel], I_ted, U_ted, 5, type_='FRONT')[0][0]
-ekran_post_ = chel_f_post[0] / kh_post * chel_f_post[1] / ke_post
+ekran_post_ = chel_f_post[0] / kh * chel_f_post[1] / ke_post
 print('\nПостоянное поле с экраном %.4f' % ekran_post_)
 Dco = ekran_post_ * ti * S * p
 Dpo = Dco / b

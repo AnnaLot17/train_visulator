@@ -168,7 +168,7 @@ ro = 0.15  # удельное сопротивление материала се
 rs = 15 / 1000  # шаг сетки, м
 sc = 0.5 / 1000  # диаметр провода сетки, м
 
-sigma = 10 ** 7  # удельная проводимость стали, см/м #todo правда? см/м это адекватно?
+sigma = 10 ** 7  # удельная проводимость стали, см/м
 v_kab = 1.3 * 2.8 * 2.6  # объём кабины, м
 r_kab = (v_kab * 3 / (4 * pi)) ** (1 / 3)  # эквивалентный радиус кабины, м
 v_mash = 13.9 * 2.8 * 2.6  # объём машинного отделения, м
@@ -179,10 +179,6 @@ e0 = 8.85 * (10 ** -12)  # диэлектрическая постоянная
 
 ke_post_splosh = (60 * pi * d * sigma)
 
-
-# # -- магнитное
-
-# сделано
 kh_splosh_kab = (1 + 1000 * d / (2 * r_kab)) ** 2
 kh_splosh_mash = (1 + 1000 * d / (2 * r_mash)) ** 2
 kh_splosh_vvk = (1 + 400 * d / (2 * r_vvk)) ** 2
@@ -192,52 +188,28 @@ y = rs / (2*pi*r_vvk) * (log(rs/sc) - 1.25)
 ke_per_setka = 1 / (3*y / (1 + 3*y))
 
 
-kh_per_setka, ke_per_splosh  = {}, {}
-C = exp(2 * pi * sc / (rs - 2 * sc))
-print("Электричество сплошное переменное")
-print("Разы")
+kh_per_setka, ke_per_splosh_vvk, ke_per_splosh_kab = {}, {}, {}
+Ch = exp(2 * pi * sc / (rs - 2 * sc))
+Ce = exp(2 * pi * 0.0025 / 0.01)
+
 for fr in harm.keys():
     f = fr / 1000000
     lam = 300000000 / f  # длина волны
 
     Zh = Z0 * 2 * r_vvk * pi / lam
-    Ze = Z0 * lam / (2 * pi * r_vvk)
+    Ze_vvk = Z0 * lam / (2 * pi * r_vvk)
+    Ze_kab = Z0 * lam / (2 * pi * r_kab)
 
-    A = (d * sigma * Zh) ** 0.5
-    B = (lam / r_vvk) ** (1 / 3)
-    kh_per_setka[fr] = A*B*C*0.024
+    Ah = (d * sigma * Zh) ** 0.5
+    delta = 0.03 * ((10 ** -7) * lam) ** 0.5
+    Ae_vvk = (delta * Ze_vvk / (10 ** -7)) ** 0.5
+    Ae_kab = (delta * Ze_kab / (10 ** -7)) ** 0.5
+    B_vvk = (lam / r_vvk) ** (1 / 3)
+    B_kab = (lam / r_kab) ** (1 / 3)
 
-    ke_per_splosh[fr] = 1 + 0.5*Ze*sigma*r_vvk
-
-    print(f"{fr}: {ke_per_splosh[fr]:.2e}")
-
-print()
-print("Децибеллы")
-for fr in harm.keys():
-    print(f"{fr}: {20*log(ke_per_splosh[fr], 10):.2f}")
-
-input()
-
-
-#     lam = 300000000 / fr  # длина волны
-#     Zh = Z0 * 2 * pi * r / lam
-#     ekr_h = 0.012 * (d_v * Zh / ro) ** 0.5 * (lam / r) ** (1 / 3) * exp(pi * ds / (s_ - ds))
-#     # kh_per_setka[fr] = 1 / ekr_h
-#
-#     delta = 0.016 / (fr ** 0.5)
-#     ekr_e = 60 * pi * 1 * delta / (ro * s_ * 2.83 * (ds ** 0.5)) * exp(ds / delta)
-#     # ke_per_setka[fr] = ekr_e
-#     print(1 / ekr_h, ekr_e)
-
-
-
-
-
-
-input()
-
-k_post_ekr_e_setka = 55.45 + 20 * log(ds ** 2 * sigma / s_, 10)
-k_post_ekr_h_setka = exp(pi * d_v / s_)
+    kh_per_setka[fr] = 0.024 * Ah * B_vvk * Ch
+    ke_per_splosh_vvk[fr] = 0.024 * Ae_vvk * B_vvk * Ce * 0.001
+    ke_per_splosh_kab[fr] = 0.024 * Ae_kab * B_kab * Ce * 0.001
 
 
 # ШИНЫ И ОБОРУДОВАНИЕ ДЛЯ РАСЧЁТОВ

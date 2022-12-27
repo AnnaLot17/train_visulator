@@ -243,7 +243,7 @@ def ekran_post(ext_en):
 
 def show(name):
     mng = plt.get_current_fig_manager()
-    # mng.window.state('zoomed') todo
+    # mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
 
@@ -791,6 +791,6 @@ ekran_post_ = chel_f_post[0] / kh * chel_f_post[1] / ke_post
 print('\nПостоянное поле с экраном %.4f' % ekran_post_)
 Dco = ekran_post_ * ti * S * p
 Dpo = Dco / b
-print('Удельная суточная доза поглощённой энергии: %.4f' % Dpo)
+print('Удельная суточная доза поглощённой энергии: %.8f' % Dpo)
 
 plt.show()

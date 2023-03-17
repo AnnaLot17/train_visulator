@@ -28,8 +28,9 @@ ti = 1  # длительность пребывания работника на 
 z_graph = z_chel  # высота среза
 
 # КОНСТАНТЫ
-
-dis = 100  # дискретизация графиков
+#todo
+dis = 40  # дискретизация графиков
+# dis = 100  # дискретизация графиков
 harm = {50: [1, 1],
         150: [0.3061, 0.400],
         250: [0.1469, 0.115],
@@ -53,7 +54,7 @@ h_nt = 7.8  # НТ
 h_up = 8.0  # УП
 
 # todo ат балды
-xp_mid = 3  # расстояние между центрами путей
+xp_mid = 4.2  # расстояние между центрами путей
 xp_kp2 = 0  # m - расстояние от центра между рельсами до КП2 (если левее центра - поставить минус)
 xp_nt2 = 0  # m - расстояние от центра между рельсами до НТ2 (если левее центра - поставить минус)
 xp_up2 = 3.7  # m - расстояние от центра между рельсами до УП2
@@ -142,51 +143,49 @@ def magnetic_calc(x_m, z_m, f_m):
     x = x_m - 2*xp - xp_kp
     h2xkp = Ikp / (4 * pi) * (
                 -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
-    h2zkp = Ikp / (4 * pi) * (x + 2 * xp) * (
+    h2zkp = Ikp / (4 * pi) * (x + xp) * (
                 1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
     h2kp = mix(h2xkp, h2zkp)
     hkp = h1kp + h2kp
 
-    # todo расстояние по х до второго КП
-    x = x_m - xp_kp2 + xp_mid
+    x = x_m - (xp_kp2 + xp_mid)
     h1xkp = Ikp / (4 * pi) * (
                 -z_m / ((x + xp) ** 2 + z_m**2) + (z_m - h_kp)/(x ** 2 + (h_kp - z_m)**2))
     h1zkp = Ikp / (4 * pi) * (x + xp) * (
                 1 / ((x + xp) ** 2 + z_m ** 2) - 1/(x ** 2 + (h_kp - z_m) ** 2))
     h1kp = mix(h1xkp, h1zkp)
-    x = x_m - 2*xp - xp_kp
+    x = x_m - 2*xp - (xp_kp2 + xp_mid)
     h2xkp = Ikp / (4 * pi) * (
                 -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
-    h2zkp = Ikp / (4 * pi) * (x + 2 * xp) * (
+    h2zkp = Ikp / (4 * pi) * (x + xp) * (
                 1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
     h2kp = mix(h2xkp, h2zkp)
     hkp_scd = h1kp + h2kp
 
     x = x_m - xp_nt
-    h1xnt = Ikp / (4 * pi) * (
+    h1xnt = Int / (4 * pi) * (
             -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / (x ** 2 + (h_nt - z_m) ** 2))
-    h1znt = Ikp / (4 * pi) * (x + xp) * (
+    h1znt = Int / (4 * pi) * (x + xp) * (
             1 / ((x + xp) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_nt - z_m) ** 2))
     h1nt = mix(h1xnt, h1znt)
     x = x_m - 2 * xp - xp_nt
-    h2xnt = Ikp / (4 * pi) * (
+    h2xnt = Int / (4 * pi) * (
             -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
-    h2znt = Ikp / (4 * pi) * (x + 2 * xp) * (
+    h2znt = Int / (4 * pi) * (x + xp) * (
             1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
     h2nt = mix(h2xnt, h2znt)
     hnt = h1nt + h2nt
 
-    # todo расстояние по х до второго НТ
-    x = x_m - xp_nt2 + xp_mid
-    h1xnt = Ikp / (4 * pi) * (
+    x = x_m - (xp_nt2 + xp_mid)
+    h1xnt = Int / (4 * pi) * (
             -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / (x ** 2 + (h_nt - z_m) ** 2))
-    h1znt = Ikp / (4 * pi) * (x + xp) * (
+    h1znt = Int / (4 * pi) * (x + xp) * (
             1 / ((x + xp) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_nt - z_m) ** 2))
     h1nt = mix(h1xnt, h1znt)
-    x = x_m - 2 * xp - xp_nt
-    h2xnt = Ikp / (4 * pi) * (
+    x = x_m - 2 * xp - (xp_nt2 + xp_mid)
+    h2xnt = Int / (4 * pi) * (
             -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
-    h2znt = Ikp / (4 * pi) * (x + 2 * xp) * (
+    h2znt = Int / (4 * pi) * (x + xp) * (
             1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
     h2nt = mix(h2xnt, h2znt)
     hnt_scd = h1nt + h2nt
@@ -195,7 +194,7 @@ def magnetic_calc(x_m, z_m, f_m):
     x2 = -xp + xp_up
     h1xup = Iup / (4 * pi) * (
             -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / (x ** 2 + (h_up - z_m) ** 2))
-    h1zup = Int / (4 * pi) * (x2 + 2 * xp + x) * (
+    h1zup = Iup / (4 * pi) * (x2 + 2 * xp + x) * (
             1 / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_up - z_m) ** 2))
     h1up = mix(h1xup, h1zup)
     x = x_m - xp_up - 2 * xp
@@ -203,20 +202,20 @@ def magnetic_calc(x_m, z_m, f_m):
     h2xup = Iup / (4 * pi) * (
             -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
     h2zup = Iup / (4 * pi) * (
-            (x2 + 2 * xp + x) / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - (x + 2 * xp) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
+            (x2 + 2 * xp + x) / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - (x + 2 * xp) / (
+            (x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
     h2up = mix(h2xup, h2zup)
     hup = h1up + h2up
 
-    # todo расстояние по х до второго УП
-    x = x_m - xp_up2 + xp_mid
-    x2 = -xp + xp_up2 + xp_mid
+    x = x_m - (xp_up2 + xp_mid)
+    x2 = -xp + xp_up2
     h1xup = Iup / (4 * pi) * (
             -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / (x ** 2 + (h_up - z_m) ** 2))
-    h1zup = Int / (4 * pi) * (x2 + 2 * xp + x) * (
+    h1zup = Iup / (4 * pi) * (x2 + 2 * xp + x) * (
             1 / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_up - z_m) ** 2))
     h1up = mix(h1xup, h1zup)
-    x = x_m - xp_up - 2 * xp
-    x2 = -xp + xp_up
+    x = x_m - (xp_up2 + xp_mid) - 2 * xp
+    x2 = -xp + xp_up2
     h2xup = Iup / (4 * pi) * (
             -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
     h2zup = Iup / (4 * pi) * (
@@ -236,10 +235,9 @@ def electric_calc(x_e, z_e, f_e):
     ent = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
     eup = U_h * log(1 + 4 * h_up * z_e / ((x_e - xp_up) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
 
-    # todo расстояния по х
-    ekp_scd = U_h * log(1 + 4 * h_nt * z_e / ((x_e - xp_nt2 + xp_mid) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt))
-    ent_scd = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp2 + xp_mid) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
-    eup_scd = U_h * log(1 + 4 * h_up * z_e / ((x_e - xp_up2 + xp_mid) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
+    ekp_scd = U_h * log(1 + 4 * h_nt * z_e / ((x_e - xp_nt2 - xp_mid) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt))
+    ent_scd = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp2 - xp_mid) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
+    eup_scd = U_h * log(1 + 4 * h_up * z_e / ((x_e - xp_up2 - xp_mid) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
 
     return [ekp, ent, eup, ekp_scd, ent_scd, eup_scd]
 
@@ -272,10 +270,10 @@ def ekran(en):
     up_dist = Point(y, z).distance(Point(xp_up, h_up))
     up_pass = (up_dist >= min_up) and (up_dist <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
 
-    kp_sec_d = Point(y, z).distance(Point(xp_up2+xp_mid, h_kp))
+    kp_sec_d = Point(y, z).distance(Point(xp_kp2+xp_mid, h_kp))
     kp_sec_p = (kp_sec_d >= min_up) and (kp_sec_d <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
 
-    nt_sec_d = Point(y, z).distance(Point(xp_up2+xp_mid, h_nt))
+    nt_sec_d = Point(y, z).distance(Point(xp_nt2+xp_mid, h_nt))
     nt_sec_p = (nt_sec_d >= min_up) and (nt_sec_d <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
 
     up_sec_d = Point(y, z).distance(Point(xp_up2+xp_mid, h_up))
@@ -355,7 +353,7 @@ def visual_up():
         plt.imshow(content, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95)
         plt.colorbar()
 
-        for delta_y in [xp_kp, xp_up, xp_nt]:
+        for delta_y in [xp_kp, xp_up, xp_nt, xp_kp2+xp_mid, xp_nt2+xp_mid, xp_up2+xp_mid]:
             plt.hlines(delta_y, Xmin, Xmax, color='black', linewidth=2)
         plt.text(0.1, xp_kp+0.05, 'КП', color='white')
         plt.text(1, xp_nt-0.3, 'НТ', color='white')
@@ -404,12 +402,10 @@ def fr_kab_lines():
 def visual_front():
     print('График строится..................')
 
-    Ymax = 1 * max(xp, width) * 1.15
+    Ymax = xp_up2 * 1.2 + xp_mid
     Ymin = xp_up * 1.2
     Zmax = 0.1
     Zmin = max(h_kp, h_nt, h_up) * 1.1
-
-    # todo размер
 
     y = np.linspace(Ymin, Ymax, dis)
     z = np.linspace(Zmin, Zmax, dis)
@@ -418,6 +414,8 @@ def visual_front():
                  (x_chel, y_, z_)) for y_ in y] for z_ in z]
 
     all_field = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
+    #todo
+    # summar = [[x_el[2] for x_el in y_list] for y_list in all_field]
     summar = [[x_el[2] for x_el in y_list] for y_list in all_field]
 
     global gph_num
@@ -433,8 +431,9 @@ def visual_front():
     plt.text(xp_kp, h_kp, 'КП', color='white',  fontsize=14)
     plt.text(xp_up, h_up, 'УП', color='white', fontsize=14)
     plt.text(xp_nt, h_nt, 'НТ', color='white', fontsize=14)
-
-    #todo ещё линии
+    plt.text(xp_kp2+xp_mid, h_kp, 'КП2', color='white',  fontsize=14)
+    plt.text(xp_up2+xp_mid, h_up, 'УП2', color='white', fontsize=14)
+    plt.text(xp_nt2+xp_mid, h_nt, 'НТ2', color='white', fontsize=14)
 
     fr_kab_lines()
 
@@ -846,26 +845,17 @@ print(f'Высота среза: {z_graph} метров')
 
 gph_num = 0
 print('\nБез электровоза')
-#todo test 2
-# проверить как выглядит это
 cont_f_up = visual_up()
 
 print('\nВид спереди')
-#todo test 1
-# вывести только магнетизим
-# вывести только электричество
-# вывести вместе
 cont_f_front = visual_front()
+plt.show()
 
 print('\nПоле в кабине сверху')
-#todo test 3
-# проверить как выглядит
 visual_up_locomotive(cont_f_up)
 visual_up_post()
 
 print('\nПоле в кабине спереди')
-#todo test 4
-# проверить как выглядит - что экран отличается от оригинала
 visual_front_locomotive(cont_f_front)
 visual_front_post()
 

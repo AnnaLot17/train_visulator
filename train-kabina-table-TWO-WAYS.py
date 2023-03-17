@@ -4,13 +4,6 @@ from shapely.geometry import Polygon, LineString, Point
 
 # РЕЖИМ РАБОТЫ СЕТИ
 
-#todo добавить то что из пердыдущего файла:
-# расчёт магнетизма
-# расчёт электричества
-# экран
-# картинка сверху
-# картинка спереди
-
 I = 300  # cуммарная сила тока, А
 U = 30000  # cуммарное напряжение, В
 
@@ -53,6 +46,11 @@ h_kp = 6.0  # КП
 h_nt = 7.8  # НТ
 h_up = 8.0  # УП
 
+xp_mid = 4.2  # расстояние между центрами путей
+xp_kp2 = 0  # m - расстояние от центра между рельсами до КП2 (если левее центра - поставить минус)
+xp_nt2 = 0  # m - расстояние от центра между рельсами до НТ2 (если левее центра - поставить минус)
+xp_up2 = 3.7  # m - расстояние от центра между рельсами до УП2
+
 # ДАННЫЕ О ЛОКОМОТИВЕ
 
 length = 1.3  # длина кабины
@@ -83,6 +81,15 @@ max_kp = Point(0.5*width, sbor[2]).distance(Point(xp_kp, h_kp))
 
 min_up = Point(-0.5*width, sbor[3]).distance(Point(xp_up, h_up))
 max_up = Point(-0.5*width, sbor[2]).distance(Point(xp_up, h_up))
+
+min_nt2 = Point(0.5*width, sbor[3]).distance(Point(xp_nt2+xp_mid, h_nt))
+max_nt2 = Point(0.5*width, sbor[2]).distance(Point(xp_nt2+xp_mid, h_nt))
+
+min_kp2 = Point(0.5*width, sbor[3]).distance(Point(xp_kp2+xp_mid, h_kp))
+max_kp2 = Point(0.5*width, sbor[2]).distance(Point(xp_kp2+xp_mid, h_kp))
+
+min_up2 = Point(-0.5*width, sbor[3]).distance(Point(xp_up2+xp_mid, h_up))
+max_up2 = Point(-0.5*width, sbor[2]).distance(Point(xp_up2+xp_mid, h_up))
 
 Z0 = 377  # волновое сопротивление поля, Ом
 mu = 1000  # относительная магнитная проницаемость стали
@@ -135,30 +142,58 @@ def magnetic_calc(x_m, z_m, f_m):
     x = x_m - 2*xp - xp_kp
     h2xkp = Ikp / (4 * pi) * (
                 -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
-    h2zkp = Ikp / (4 * pi) * (x + 2 * xp) * (
+    h2zkp = Ikp / (4 * pi) * (x + xp) * (
                 1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
     h2kp = mix(h2xkp, h2zkp)
     hkp = h1kp + h2kp
 
+    x = x_m - (xp_kp2 + xp_mid)
+    h1xkp = Ikp / (4 * pi) * (
+                -z_m / ((x + xp) ** 2 + z_m**2) + (z_m - h_kp)/(x ** 2 + (h_kp - z_m)**2))
+    h1zkp = Ikp / (4 * pi) * (x + xp) * (
+                1 / ((x + xp) ** 2 + z_m ** 2) - 1/(x ** 2 + (h_kp - z_m) ** 2))
+    h1kp = mix(h1xkp, h1zkp)
+    x = x_m - 2*xp - (xp_kp2 + xp_mid)
+    h2xkp = Ikp / (4 * pi) * (
+                -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
+    h2zkp = Ikp / (4 * pi) * (x + xp) * (
+                1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
+    h2kp = mix(h2xkp, h2zkp)
+    hkp_scd = h1kp + h2kp
+
     x = x_m - xp_nt
-    h1xnt = Ikp / (4 * pi) * (
+    h1xnt = Int / (4 * pi) * (
             -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / (x ** 2 + (h_nt - z_m) ** 2))
-    h1znt = Ikp / (4 * pi) * (x + xp) * (
+    h1znt = Int / (4 * pi) * (x + xp) * (
             1 / ((x + xp) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_nt - z_m) ** 2))
     h1nt = mix(h1xnt, h1znt)
     x = x_m - 2 * xp - xp_nt
-    h2xnt = Ikp / (4 * pi) * (
+    h2xnt = Int / (4 * pi) * (
             -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
-    h2znt = Ikp / (4 * pi) * (x + 2 * xp) * (
+    h2znt = Int / (4 * pi) * (x + xp) * (
             1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
     h2nt = mix(h2xnt, h2znt)
     hnt = h1nt + h2nt
+
+    x = x_m - (xp_nt2 + xp_mid)
+    h1xnt = Int / (4 * pi) * (
+            -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / (x ** 2 + (h_nt - z_m) ** 2))
+    h1znt = Int / (4 * pi) * (x + xp) * (
+            1 / ((x + xp) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_nt - z_m) ** 2))
+    h1nt = mix(h1xnt, h1znt)
+    x = x_m - 2 * xp - (xp_nt2 + xp_mid)
+    h2xnt = Int / (4 * pi) * (
+            -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
+    h2znt = Int / (4 * pi) * (x + xp) * (
+            1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
+    h2nt = mix(h2xnt, h2znt)
+    hnt_scd = h1nt + h2nt
 
     x = x_m - xp_up
     x2 = -xp + xp_up
     h1xup = Iup / (4 * pi) * (
             -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / (x ** 2 + (h_up - z_m) ** 2))
-    h1zup = Int / (4 * pi) * (x2 + 2 * xp + x) * (
+    h1zup = Iup / (4 * pi) * (x2 + 2 * xp + x) * (
             1 / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_up - z_m) ** 2))
     h1up = mix(h1xup, h1zup)
     x = x_m - xp_up - 2 * xp
@@ -166,11 +201,29 @@ def magnetic_calc(x_m, z_m, f_m):
     h2xup = Iup / (4 * pi) * (
             -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
     h2zup = Iup / (4 * pi) * (
-            (x2 + 2 * xp + x) / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - (x + 2 * xp) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
+            (x2 + 2 * xp + x) / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - (x + 2 * xp) / (
+            (x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
     h2up = mix(h2xup, h2zup)
     hup = h1up + h2up
 
-    return [hkp, hnt, hup]
+    x = x_m - (xp_up2 + xp_mid)
+    x2 = -xp + xp_up2
+    h1xup = Iup / (4 * pi) * (
+            -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / (x ** 2 + (h_up - z_m) ** 2))
+    h1zup = Iup / (4 * pi) * (x2 + 2 * xp + x) * (
+            1 / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_up - z_m) ** 2))
+    h1up = mix(h1xup, h1zup)
+    x = x_m - (xp_up2 + xp_mid) - 2 * xp
+    x2 = -xp + xp_up2
+    h2xup = Iup / (4 * pi) * (
+            -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
+    h2zup = Iup / (4 * pi) * (
+            (x2 + 2 * xp + x) / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - (x + 2 * xp) / (
+                (x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
+    h2up = mix(h2xup, h2zup)
+    hup_sec = h1up + h2up
+
+    return [hkp, hnt, hup, hkp_scd, hnt_scd, hup_sec]
 
 
 def electric_calc(x_e, z_e, f_e):
@@ -181,7 +234,11 @@ def electric_calc(x_e, z_e, f_e):
     ent = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
     eup = U_h * log(1 + 4 * h_up * z_e / ((x_e - xp_up) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
 
-    return [ekp, ent, eup]
+    ekp_scd = U_h * log(1 + 4 * h_nt * z_e / ((x_e - xp_nt2 - xp_mid) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt))
+    ent_scd = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp2 - xp_mid) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
+    eup_scd = U_h * log(1 + 4 * h_up * z_e / ((x_e - xp_up2 - xp_mid) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
+
+    return [ekp, ent, eup, ekp_scd, ent_scd, eup_scd]
 
 
 def full_field(res_en):
@@ -189,7 +246,8 @@ def full_field(res_en):
     for en in res_en[0].values():
         sum_h += sum(en[0])
         sum_e += sum(en[1])
-        sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2]
+        sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2] + \
+                 en[0][3] * en[1][3] + en[0][4] * en[1][4] + en[0][5] * en[1][5]
     return [sum_h, sum_e, sum_g]
 
 
@@ -211,6 +269,15 @@ def ekran(en):
     up_dist = Point(y, z).distance(Point(xp_up, h_up))
     up_pass = (up_dist >= min_up) and (up_dist <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
 
+    kp_sec_d = Point(y, z).distance(Point(xp_kp2+xp_mid, h_kp))
+    kp_sec_p = (kp_sec_d >= min_kp2) and (kp_sec_d <= max_kp2) and (x >= sbor[0]) and (x <= sbor[1])
+
+    nt_sec_d = Point(y, z).distance(Point(xp_nt2+xp_mid, h_nt))
+    nt_sec_p = (nt_sec_d >= min_nt2) and (nt_sec_d <= max_nt2) and (x >= sbor[0]) and (x <= sbor[1])
+
+    up_sec_d = Point(y, z).distance(Point(xp_up2+xp_mid, h_up))
+    up_sec_p = (up_sec_d >= min_up2) and (up_sec_d <= max_up2) and (x >= sbor[0]) and (x <= sbor[1])
+
     if (abs(y) <= 0.5*width) and (z >= floor) and (z <= floor+height):
         if not kp_pass:
             for f in en[0].keys():
@@ -224,6 +291,18 @@ def ekran(en):
             for f in en[0].keys():
                 en[0][f][0][2] /= kh
                 en[0][f][1][2] /= ke_per[f]
+        if not kp_sec_p:
+            for f in en[0].keys():
+                en[0][f][0][3] /= kh
+                en[0][f][1][3] /= ke_per[fr]
+        if not nt_sec_p:
+            for f in en[0].keys():
+                en[0][f][0][4] /= kh
+                en[0][f][1][4] /= ke_per[fr]
+        if not up_sec_p:
+            for f in en[0].keys():
+                en[0][f][0][5] /= kh
+                en[0][f][1][5] /= ke_per[fr]
     return en
 
 
@@ -241,7 +320,7 @@ def ekran_post(ext_en):
 
 
 def visual_front():
-    Ymax = 1 * max(xp, width) * 1.15
+    Ymax = xp_up2 * 1.2 + xp_mid
     Ymin = xp_up * 1.2
     Zmax = 0.1
     Zmin = max(h_kp, h_nt, h_up) * 1.1

@@ -28,9 +28,7 @@ ti = 1  # длительность пребывания работника на 
 z_graph = z_chel  # высота среза
 
 # КОНСТАНТЫ
-#todo
-dis = 40  # дискретизация графиков
-# dis = 100  # дискретизация графиков
+dis = 100  # дискретизация графиков
 harm = {50: [1, 1],
         150: [0.3061, 0.400],
         250: [0.1469, 0.115],
@@ -53,7 +51,6 @@ h_kp = 6.0  # КП
 h_nt = 7.8  # НТ
 h_up = 8.0  # УП
 
-# todo ат балды
 xp_mid = 4.2  # расстояние между центрами путей
 xp_kp2 = 0  # m - расстояние от центра между рельсами до КП2 (если левее центра - поставить минус)
 xp_nt2 = 0  # m - расстояние от центра между рельсами до НТ2 (если левее центра - поставить минус)
@@ -89,6 +86,15 @@ max_kp = Point(0.5*width, sbor[2]).distance(Point(xp_kp, h_kp))
 
 min_up = Point(-0.5*width, sbor[3]).distance(Point(xp_up, h_up))
 max_up = Point(-0.5*width, sbor[2]).distance(Point(xp_up, h_up))
+
+min_nt2 = Point(0.5*width, sbor[3]).distance(Point(xp_nt2+xp_mid, h_nt))
+max_nt2 = Point(0.5*width, sbor[2]).distance(Point(xp_nt2+xp_mid, h_nt))
+
+min_kp2 = Point(0.5*width, sbor[3]).distance(Point(xp_kp2+xp_mid, h_kp))
+max_kp2 = Point(0.5*width, sbor[2]).distance(Point(xp_kp2+xp_mid, h_kp))
+
+min_up2 = Point(-0.5*width, sbor[3]).distance(Point(xp_up2+xp_mid, h_up))
+max_up2 = Point(-0.5*width, sbor[2]).distance(Point(xp_up2+xp_mid, h_up))
 
 
 Z0 = 377  # волновое сопротивление поля, Ом
@@ -271,13 +277,13 @@ def ekran(en):
     up_pass = (up_dist >= min_up) and (up_dist <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
 
     kp_sec_d = Point(y, z).distance(Point(xp_kp2+xp_mid, h_kp))
-    kp_sec_p = (kp_sec_d >= min_up) and (kp_sec_d <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
+    kp_sec_p = (kp_sec_d >= min_kp2) and (kp_sec_d <= max_kp2) and (x >= sbor[0]) and (x <= sbor[1])
 
     nt_sec_d = Point(y, z).distance(Point(xp_nt2+xp_mid, h_nt))
-    nt_sec_p = (nt_sec_d >= min_up) and (nt_sec_d <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
+    nt_sec_p = (nt_sec_d >= min_nt2) and (nt_sec_d <= max_nt2) and (x >= sbor[0]) and (x <= sbor[1])
 
     up_sec_d = Point(y, z).distance(Point(xp_up2+xp_mid, h_up))
-    up_sec_p = (up_sec_d >= min_up) and (up_sec_d <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
+    up_sec_p = (up_sec_d >= min_up2) and (up_sec_d <= max_up2) and (x >= sbor[0]) and (x <= sbor[1])
 
     if (abs(y) <= 0.5*width) and (z >= floor) and (z <= floor+height):
         if not kp_pass:
@@ -355,12 +361,12 @@ def visual_up():
 
         for delta_y in [xp_kp, xp_up, xp_nt, xp_kp2+xp_mid, xp_nt2+xp_mid, xp_up2+xp_mid]:
             plt.hlines(delta_y, Xmin, Xmax, color='black', linewidth=2)
-        plt.text(0.1, xp_kp+0.05, 'КП', color='white')
-        plt.text(1, xp_nt-0.3, 'НТ', color='white')
-        plt.text(0.1, xp_up+0.05, 'УП', color='white')
-        plt.text(0.1, xp_kp2+xp_mid+0.05, 'КП2', color='white')
-        plt.text(1, xp_nt2+xp_mid-0.3, 'НТ2', color='white')
-        plt.text(0.1, xp_up2+xp_mid+0.05, 'УП2', color='white')
+        plt.text(0.1, xp_kp+0.05, 'КП', color='black')
+        plt.text(1, xp_nt-0.3, 'НТ', color='black')
+        plt.text(0.1, xp_up+0.05, 'УП', color='black')
+        plt.text(0.1, xp_kp2+xp_mid+0.05, 'КП2', color='black')
+        plt.text(1, xp_nt2+xp_mid-0.3, 'НТ2', color='black')
+        plt.text(0.1, xp_up2+xp_mid+0.05, 'УП2', color='black')
 
         plt.hlines(0.5 * width, 0, length, colors='red', linestyles='--')
         plt.hlines(-0.5 * width, 0, length, colors='red', linestyles='--')
@@ -368,8 +374,6 @@ def visual_up():
         plt.vlines(length, -0.5 * width, 0.5 * width, colors='red', linestyles='--')
         plt.xlabel(x_lb)
         plt.ylabel(y_lb)
-
-        # todo проверить линии
 
         plt.title(name_)
 
@@ -414,8 +418,6 @@ def visual_front():
                  (x_chel, y_, z_)) for y_ in y] for z_ in z]
 
     all_field = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
-    #todo
-    # summar = [[x_el[2] for x_el in y_list] for y_list in all_field]
     summar = [[x_el[2] for x_el in y_list] for y_list in all_field]
 
     global gph_num
@@ -428,12 +430,12 @@ def visual_front():
     plt.imshow(summar, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
     plt.colorbar()
 
-    plt.text(xp_kp, h_kp, 'КП', color='white',  fontsize=14)
-    plt.text(xp_up, h_up, 'УП', color='white', fontsize=14)
-    plt.text(xp_nt, h_nt, 'НТ', color='white', fontsize=14)
-    plt.text(xp_kp2+xp_mid, h_kp, 'КП2', color='white',  fontsize=14)
-    plt.text(xp_up2+xp_mid, h_up, 'УП2', color='white', fontsize=14)
-    plt.text(xp_nt2+xp_mid, h_nt, 'НТ2', color='white', fontsize=14)
+    plt.text(xp_kp, h_kp, 'КП', color='black',  fontsize=14)
+    plt.text(xp_up, h_up, 'УП', color='black', fontsize=14)
+    plt.text(xp_nt, h_nt, 'НТ', color='black', fontsize=14)
+    plt.text(xp_kp2+xp_mid, h_kp, 'КП2', color='black',  fontsize=14)
+    plt.text(xp_up2+xp_mid, h_up, 'УП2', color='black', fontsize=14)
+    plt.text(xp_nt2+xp_mid, h_nt, 'НТ2', color='black', fontsize=14)
 
     fr_kab_lines()
 
@@ -849,7 +851,6 @@ cont_f_up = visual_up()
 
 print('\nВид спереди')
 cont_f_front = visual_front()
-plt.show()
 
 print('\nПоле в кабине сверху')
 visual_up_locomotive(cont_f_up)

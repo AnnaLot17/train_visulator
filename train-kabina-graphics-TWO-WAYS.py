@@ -171,7 +171,7 @@ def magnetic_calc(x_m, z_m, f_m):
     h2zkp_2 = Ikp / (4 * pi) * (x + xp) * (
                 1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
     h2kp_2 = mix(h2xkp_2, h2zkp_2)
-    hkp_scd = h1kp + h2kp
+    hkp_scd = h1kp_2 + h2kp_2
 
     x = x_m - xp_nt
     h1xnt = Int / (4 * pi) * (

@@ -1,3 +1,4 @@
+# Импорт библиотек
 from math import log, exp, pi, atan
 import matplotlib.pyplot as plt
 import numpy as np
@@ -5,6 +6,7 @@ from datetime import datetime
 import matplotlib.colors as colors
 from shapely.geometry import Polygon, LineString, Point
 
+# цветоваяя схема графиков
 plt.style.use('seaborn-white')
 cmap = 'YlOrRd'
 
@@ -67,17 +69,17 @@ bor = [0.2, 0.6, -1.2, 1.2, floor+1.5, floor+2.2]  # узлы окна
 # min_x, max_x, min_z, max_z
 sbor = [0.3, 1, floor+1.5, floor+2.2]  # узлы для бокового окна
 
-
+# формируем передние окна методо Polygon
 frontWindleft = Polygon([(bor[0], bor[2], bor[4]),
                          (bor[1], bor[2], bor[5]),
                          (bor[1], -0.22, bor[5]),
                          (bor[0], -0.22, bor[4])])
-
 frontWindright = Polygon([(bor[0], 0.22, bor[4]),
                           (bor[1], 0.22, bor[5]),
                           (bor[1], bor[3], bor[5]),
                           (bor[0], bor[3], bor[4])])
 
+# расчёт границ теней боковых окон для кажого источника поля
 min_nt = Point(0.5*width, sbor[3]).distance(Point(xp_nt, h_nt))
 max_nt = Point(0.5*width, sbor[2]).distance(Point(xp_nt, h_nt))
 
@@ -93,22 +95,23 @@ max_nt2 = Point(0.5*width, sbor[2]).distance(Point(xp_nt2+xp_mid, h_nt))
 min_kp2 = Point(0.5*width, sbor[3]).distance(Point(xp_kp2+xp_mid, h_kp))
 max_kp2 = Point(0.5*width, sbor[2]).distance(Point(xp_kp2+xp_mid, h_kp))
 
-min_up2 = Point(-0.5*width, sbor[3]).distance(Point(xp_up2+xp_mid, h_up))
-max_up2 = Point(-0.5*width, sbor[2]).distance(Point(xp_up2+xp_mid, h_up))
+min_up2 = Point(0.5*width, sbor[3]).distance(Point(xp_up2+xp_mid, h_up))
+max_up2 = Point(0.5*width, sbor[2]).distance(Point(xp_up2+xp_mid, h_up))
 
+# ЭКРАН
 
 Z0 = 377  # волновое сопротивление поля, Ом
 mu = 1000  # относительная магнитная проницаемость стали
 dst = 0.0025  # толщина стали м
 sigma = 10 ** 7  # удельная проводимость стали
 
-
 v_kab = 1.3 * 2.8 * 2.6  # объём кабины, м
 r_kab = (v_kab * 3 / (4 * pi)) ** (1 / 3)  # эквивалентный радиус кабины, м
 
+# расчёт коэффициентов экранирования
 kh = (1 + 1000 * dst / (2 * r_kab)) ** 2
 ke_post = 60 * pi * dst * sigma
-ke_per = {}
+ke_per = {}  # для переменного поля формируем словарь коэффициентов {частота: значение}
 Ce = exp(2 * pi * 0.0025 / 0.01)
 for fr in harm.keys():
     lam = 300000000 / (fr / 1000000)
@@ -121,17 +124,18 @@ for fr in harm.keys():
 
 # ОБОРУДОВАНИЕ
 
-x_td1_sr = 0.9  # тяговый двигатель
-dy_td = 0.8
-r_td = 0.604
-l_td = 0.66
-z_td = 1
+x_td1_sr = 0.9  # тяговый двигатель - положение по оси х
+dy_td = 0.8  # расстояние от центра симметрии по оси у
+r_td = 0.604  # радиус
+l_td = 0.66  # длина
+z_td = 1  # положение по оси z
 
 
+# значение вектора магнитного поля из составляющих х и y
 def mix(h_x, h_zz):
     return (h_x ** 2 + h_zz ** 2) ** 0.5
 
-
+# магнитное поле
 def magnetic_calc(x_m, z_m, f_m):
 
     I_h = I * harm.get(f_m)[0]
@@ -140,6 +144,7 @@ def magnetic_calc(x_m, z_m, f_m):
     Int = 0.20 * I_h
     Iup = 0.39 * I_h
 
+    # расчёт x и z составляющих магнитного поля от правого и левого рельса для каждого провода
     x = x_m - xp_kp
     h1xkp = Ikp / (4 * pi) * (
                 -z_m / ((x + xp) ** 2 + z_m**2) + (z_m - h_kp)/(x ** 2 + (h_kp - z_m)**2))
@@ -155,17 +160,17 @@ def magnetic_calc(x_m, z_m, f_m):
     hkp = h1kp + h2kp
 
     x = x_m - (xp_kp2 + xp_mid)
-    h1xkp = Ikp / (4 * pi) * (
+    h1xkp_2 = Ikp / (4 * pi) * (
                 -z_m / ((x + xp) ** 2 + z_m**2) + (z_m - h_kp)/(x ** 2 + (h_kp - z_m)**2))
-    h1zkp = Ikp / (4 * pi) * (x + xp) * (
+    h1zkp_2 = Ikp / (4 * pi) * (x + xp) * (
                 1 / ((x + xp) ** 2 + z_m ** 2) - 1/(x ** 2 + (h_kp - z_m) ** 2))
-    h1kp = mix(h1xkp, h1zkp)
+    h1kp_2 = mix(h1xkp_2, h1zkp_2)
     x = x_m - 2*xp - (xp_kp2 + xp_mid)
-    h2xkp = Ikp / (4 * pi) * (
+    h2xkp_2 = Ikp / (4 * pi) * (
                 -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
-    h2zkp = Ikp / (4 * pi) * (x + xp) * (
+    h2zkp_2 = Ikp / (4 * pi) * (x + xp) * (
                 1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
-    h2kp = mix(h2xkp, h2zkp)
+    h2kp_2 = mix(h2xkp_2, h2zkp_2)
     hkp_scd = h1kp + h2kp
 
     x = x_m - xp_nt
@@ -183,18 +188,18 @@ def magnetic_calc(x_m, z_m, f_m):
     hnt = h1nt + h2nt
 
     x = x_m - (xp_nt2 + xp_mid)
-    h1xnt = Int / (4 * pi) * (
+    h1xnt_2 = Int / (4 * pi) * (
             -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / (x ** 2 + (h_nt - z_m) ** 2))
-    h1znt = Int / (4 * pi) * (x + xp) * (
+    h1znt_2 = Int / (4 * pi) * (x + xp) * (
             1 / ((x + xp) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_nt - z_m) ** 2))
-    h1nt = mix(h1xnt, h1znt)
+    h1nt_2 = mix(h1xnt_2, h1znt_2)
     x = x_m - 2 * xp - (xp_nt2 + xp_mid)
-    h2xnt = Int / (4 * pi) * (
+    h2xnt_2 = Int / (4 * pi) * (
             -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
-    h2znt = Int / (4 * pi) * (x + xp) * (
+    h2znt_2 = Int / (4 * pi) * (x + xp) * (
             1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
-    h2nt = mix(h2xnt, h2znt)
-    hnt_scd = h1nt + h2nt
+    h2nt_2 = mix(h2xnt_2, h2znt_2)
+    hnt_scd = h1nt_2 + h2nt_2
 
     x = x_m - xp_up
     x2 = -xp + xp_up
@@ -215,24 +220,25 @@ def magnetic_calc(x_m, z_m, f_m):
 
     x = x_m - (xp_up2 + xp_mid)
     x2 = -xp + xp_up2
-    h1xup = Iup / (4 * pi) * (
+    h1xup_2 = Iup / (4 * pi) * (
             -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / (x ** 2 + (h_up - z_m) ** 2))
-    h1zup = Iup / (4 * pi) * (x2 + 2 * xp + x) * (
+    h1zup_2 = Iup / (4 * pi) * (x2 + 2 * xp + x) * (
             1 / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_up - z_m) ** 2))
-    h1up = mix(h1xup, h1zup)
+    h1up_2 = mix(h1xup_2, h1zup_2)
     x = x_m - (xp_up2 + xp_mid) - 2 * xp
     x2 = -xp + xp_up2
-    h2xup = Iup / (4 * pi) * (
+    h2xup_2 = Iup / (4 * pi) * (
             -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
-    h2zup = Iup / (4 * pi) * (
+    h2zup_2 = Iup / (4 * pi) * (
             (x2 + 2 * xp + x) / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - (x + 2 * xp) / (
                 (x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
-    h2up = mix(h2xup, h2zup)
-    hup_sec = h1up + h2up
+    h2up_2 = mix(h2xup_2, h2zup_2)
+    hup_sec = h1up_2 + h2up_2
 
     return [hkp, hnt, hup, hkp_scd, hnt_scd, hup_sec]
 
 
+# расчёт магнитного поля
 def electric_calc(x_e, z_e, f_e):
 
     U_h = U * harm.get(f_e)[1]
@@ -248,27 +254,32 @@ def electric_calc(x_e, z_e, f_e):
     return [ekp, ent, eup, ekp_scd, ent_scd, eup_scd]
 
 
+#  суммирование поля: рассчитывали для каждой точки графика значения для каждой гармоники, теперь для графика суммируем
 def full_field(res_en):
     sum_h, sum_e, sum_g = 0, 0, 0
     for en in res_en[0].values():
-        sum_h += sum(en[0])
-        sum_e += sum(en[1])
+        sum_h += sum(en[0])  # магнитная составляющая
+        sum_e += sum(en[1])  # электрическая составляющая
+        # энергия
         sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2] + \
                  en[0][3] * en[1][3] + en[0][4] * en[1][4] + en[0][5] * en[1][5]
     return [sum_h, sum_e, sum_g]
 
 
+#  расчёт экрана переменного поля
 def ekran(en):
 
-    x, y, z = en[1]
+    x, y, z = en[1]   # координаты точки
+
+    # расстояние от текущей точки до КТ и НТ - для расчёта лобовых окон
     kppth = LineString([(x, y, z), (x, xp_kp, h_kp)])
     ntpth = LineString([(x, y, z), (x, xp_nt, h_nt)])
-
     kp_pass = kppth.intersects(frontWindleft) or kppth.intersects(frontWindright)
     nt_pass = ntpth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
 
-    kp_dist = Point(y, z).distance(Point(xp_kp, h_kp))
-    kp_pass |= (kp_dist >= min_kp) and (kp_dist <= max_kp) and (x >= sbor[0]) and (x <= sbor[1])
+    # для каждого провода проверяем, попадает ли текущая точка в тень от бокового окна или нет
+    kp_dist = Point(y, z).distance(Point(xp_kp, h_kp))  # направление от точки до провода
+    kp_pass |= (kp_dist >= min_kp) and (kp_dist <= max_kp) and (x >= sbor[0]) and (x <= sbor[1])  # пересекает ли окно
 
     nt_dist = Point(y, z).distance(Point(xp_nt, h_nt))
     nt_pass |= (nt_dist >= min_nt) and (nt_dist <= max_nt) and (x >= sbor[0]) and (x <= sbor[1])
@@ -285,6 +296,7 @@ def ekran(en):
     up_sec_d = Point(y, z).distance(Point(xp_up2+xp_mid, h_up))
     up_sec_p = (up_sec_d >= min_up2) and (up_sec_d <= max_up2) and (x >= sbor[0]) and (x <= sbor[1])
 
+    # для каждой точки внутри кабины делим на коэффициент экранирования, если точка в тени окна для поля каждого провода
     if (abs(y) <= 0.5*width) and (z >= floor) and (z <= floor+height):
         if not kp_pass:
             for f in en[0].keys():
@@ -314,6 +326,7 @@ def ekran(en):
     return en
 
 
+# расчёт экрана постоянного поля
 def ekran_post(ext_en):
     k_h, k_e = 1, 1
     if (ext_en[1][2] > floor-1) and (ext_en[1][2] < floor+height):
@@ -327,38 +340,47 @@ def ekran_post(ext_en):
     return [[ext_en[0][0] / k_h, ext_en[0][1] / k_e], ext_en[1]]
 
 
+# сохранение файла с картинкой
 def show(name):
     mng = plt.get_current_fig_manager()
     # mng.window.state('zoomed')
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
 
 
+# построение вида сверху без электровоза
 def visual_up():
     print('График строится..................')
 
+    # границы графика
     Xmin = -0.5
     Xmax = length + 0.5
     Ymin = xp_up * 1.15
     Ymax = xp_mid + abs(Ymin)
 
+    # разбиение по точкам
     x = np.linspace(Xmin, Xmax, dis)
     y = np.linspace(Ymin, Ymax, dis)
 
+    # расчёт значений для каждой точки графика
     every_f = [[[{fr: [magnetic_calc(y_, z_graph, fr), electric_calc(y_, z_graph, fr)] for fr in harm.keys()},
                  (x_, y_, z_graph)] for x_ in x] for y_ in y]
 
+    # перевод значений посчитанных для каждой гармоники каждого провода в одно значение
     summar = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
 
+    # составление графика на магнитную, электрическую составляющую и энергию
     magnetic = [[x_el[0] for x_el in y_list] for y_list in summar]
     electric = [[x_el[1] for x_el in y_list] for y_list in summar]
     energy = [[x_el[2] for x_el in y_list] for y_list in summar]
 
+    # вывод точек, рисование уровней
     def do_graph(content, name_, x_lb='Ось x, метры', y_lb='Ось y, метры'):
         ct = plt.contour(x, y, content, alpha=0.75, colors='black', linestyles='dotted', levels=5)
         plt.clabel(ct, fontsize=10)
         plt.imshow(content, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95)
         plt.colorbar()
 
+        # рисование и подпись проводов
         for delta_y in [xp_kp, xp_up, xp_nt, xp_kp2+xp_mid, xp_nt2+xp_mid, xp_up2+xp_mid]:
             plt.hlines(delta_y, Xmin, Xmax, color='black', linewidth=2)
         plt.text(0.1, xp_kp+0.05, 'КП', color='black')
@@ -368,6 +390,7 @@ def visual_up():
         plt.text(1, xp_nt2+xp_mid-0.3, 'НТ2', color='black')
         plt.text(0.1, xp_up2+xp_mid+0.05, 'УП2', color='black')
 
+        # рисование очертания поезда
         plt.hlines(0.5 * width, 0, length, colors='red', linestyles='--')
         plt.hlines(-0.5 * width, 0, length, colors='red', linestyles='--')
         plt.vlines(0, -0.5 * width, 0.5 * width, colors='red', linestyles='--')
@@ -377,6 +400,7 @@ def visual_up():
 
         plt.title(name_)
 
+    # вывод значений магнитного, электрического поля, энергии
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
@@ -395,6 +419,7 @@ def visual_up():
     return every_f
 
 
+# рисование линий кабины
 def fr_kab_lines():
     plt.hlines(height + floor, -0.5 * width, 0.5 * width, colors='red', linestyles='--')
     plt.hlines(floor, -0.5 * width, 0.5 * width, colors='red', linestyles='--')
@@ -403,23 +428,29 @@ def fr_kab_lines():
     plt.vlines(0.5 * width, 1, height+floor, colors='red', linestyles='--')
 
 
+# вывод вида спереди без электровоза
 def visual_front():
     print('График строится..................')
 
+    # границы графика
     Ymax = xp_up2 * 1.2 + xp_mid
     Ymin = xp_up * 1.2
     Zmax = 0.1
     Zmin = max(h_kp, h_nt, h_up) * 1.1
 
+    # разбиение на точки
     y = np.linspace(Ymin, Ymax, dis)
     z = np.linspace(Zmin, Zmax, dis)
 
+    # расчёт по точкам
     every_f = [[({fr: (magnetic_calc(y_, z_, fr), electric_calc(y_, z_, fr)) for fr in harm.keys()},
                  (x_chel, y_, z_)) for y_ in y] for z_ in z]
 
+    # суммирование гармоник
     all_field = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
     summar = [[x_el[2] for x_el in y_list] for y_list in all_field]
 
+    # вывод графика, рисование уровней
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
@@ -430,6 +461,7 @@ def visual_front():
     plt.imshow(summar, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
     plt.colorbar()
 
+    # названия проводов
     plt.text(xp_kp, h_kp, 'КП', color='black',  fontsize=14)
     plt.text(xp_up, h_up, 'УП', color='black', fontsize=14)
     plt.text(xp_nt, h_nt, 'НТ', color='black', fontsize=14)
@@ -450,6 +482,7 @@ def visual_front():
     return every_f
 
 
+# расчёт постоянного поля
 def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
     ds = 8
 
@@ -468,6 +501,7 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
         y_cab = np.linspace(-0.5*width, 0.5*width, 40)
         minus = [[x_, y_, z_] for z_ in (floor, floor-1) for y_ in y_cab for x_ in x_cab]
 
+    # расчёт постоянного поля для каждой точки кабины
     def in_point(x_, y_, z_):
         H_ob, E_ob = 0, 0
         for p in points:
@@ -487,6 +521,7 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
         return [in_point(x_chel, y_, z_) for z_ in y_arr for y_ in x_arr]
 
 
+# рисование окон и стульев в кабине, вид сверху
 def kab_lines_up():
     d = 0.12
     cl = 'blue'
@@ -528,6 +563,7 @@ def kab_lines_up():
     plt.vlines(length-0.01, 0.5*width, -0.5*width, colors=cl, linestyles='--')
 
 
+# рисование стульев в кабине вид спереди
 def kab_lines_front():
     d = 0.13
     cl = 'blue'
@@ -553,6 +589,7 @@ def kab_lines_front():
     plt.vlines(-y_chel+d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
 
 
+# рисование очертаний ТЭД
 def ted_lines_front():
     plt.hlines(z_td + 0.5*r_td, dy_td - 0.5*l_td, dy_td + 0.5*l_td, colors='blue', linestyles='--')
     plt.hlines(z_td - 0.5*r_td, dy_td - 0.5*l_td, dy_td + 0.5*l_td, colors='blue', linestyles='--')
@@ -565,6 +602,7 @@ def ted_lines_front():
     plt.vlines(-dy_td + 0.5*l_td, z_td - 0.5*r_td, z_td + 0.5*r_td, colors='blue', linestyles='--')
 
 
+# формирование треугольников
 def triang_do(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='Ось y, метры', lev=5):
     plt.axis('equal')
     plt.tricontourf(triangulation, scalar_, cmap=cmap)
@@ -578,24 +616,29 @@ def triang_do(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='
     plt.title(name_)
 
 
+# вид сверху внутри кабины
 def visual_up_locomotive(ext_f):
     print('График строится..................')
 
+    # границы графика
     Xmin = 0
     Xmax = length
     Ymax = -0.5 * width
     Ymin = -Ymax
 
+    # расчёт
     inside = [[full_field(ekran(el)) for el in y_list if (el[1][0] >= Xmin) and (el[1][0] <= Xmax)]
               for y_list in ext_f if abs(y_list[0][1][1]) <= 0.5 * width]
 
-    x_ln = np.linspace(Xmin, Xmax, len(inside[0]))
-    y_ln = np.linspace(Ymin, Ymax, len(inside))
+    # x_ln = np.linspace(Xmin, Xmax, len(inside[0]))
+    # y_ln = np.linspace(Ymin, Ymax, len(inside))
 
+    # выделение отдельно магнитной, электрической, энергетической составляющей
     magnetic = [[x_el[0] for x_el in y_list] for y_list in inside]
     electric = [[x_el[1] for x_el in y_list] for y_list in inside]
     energy = [[x_el[2] for x_el in y_list] for y_list in inside]
 
+    # функция вывода графика
     def graph_do(znach, name_, x_lb='', y_lb=''):
         # ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
         # plt.clabel(ct, fontsize=10)
@@ -607,6 +650,7 @@ def visual_up_locomotive(ext_f):
 
         plt.title(name_)
 
+    # вывод графика три раза
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
@@ -624,17 +668,21 @@ def visual_up_locomotive(ext_f):
     show(name)
 
 
+# вид внутри кабины сверху для постоянного поля
 def visual_up_post():
     print('Расчёт поля от тяговых двигателей....')
+    # граница графика
     Xmin = 0
     Xmax = length
     Ymax = -0.5 * width
     Ymin = -Ymax
 
+    # разбиение на узлы
     dis = 60
     x_ln = np.linspace(Xmin, Xmax, dis, endpoint=True)
     y_ln = np.linspace(Ymin, Ymax, dis, endpoint=True)
 
+    # функция отрисовки
     def graph_do(znach, name_, x_lb='', y_lb=''):
         ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
         plt.clabel(ct, fontsize=10)
@@ -646,12 +694,15 @@ def visual_up_post():
 
         plt.title(name_)
 
+    # расчёт поля
     ted_field = ted_field_calc(x_ln, y_ln, I_ted, U_ted, 5)
 
+    # выделение составляющих поля
     magnetic = np.array([el[0][0]/kh for el in ted_field]).reshape(len(y_ln), len(x_ln))
     electric = np.array([el[0][1]/ke_post for el in ted_field]).reshape(len(y_ln), len(x_ln))
     energy = np.array([el[0][0]/kh * el[0][1]/ke_post for el in ted_field]).reshape(len(y_ln), len(x_ln))
 
+    # вывод графика три раза
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
@@ -671,23 +722,29 @@ def visual_up_post():
     print('График построен.')
 
 
+# вид спереди на кабину, переменное поле
 def visual_front_locomotive(ext_f):
+    # граница графика
     Ymin, Ymax = -0.6*width, 0.6*width
     Zmin, Zmax = floor+height+1, 0.1
 
+    # расчёт
     ekran_ = [[ekran(y_el) for y_el in z_list if abs(y_el[1][1]) <= Ymax] for z_list in ext_f
               if z_list[0][1][2] < Zmin]
 
+    # суммирование значений и выделение магнитной, электрической и энергетической составляющей
     summar = [[full_field(x_el) for x_el in y_list] for y_list in ekran_]
     magnetic = [[x_el[0] for x_el in y_list] for y_list in summar]
     electric = [[x_el[1] for x_el in y_list] for y_list in summar]
     energy = [[x_el[2] for x_el in y_list] for y_list in summar]
 
+    # формирование расчёта гармоник для положения человека
     y_ln = np.linspace(Ymin, Ymax, len(ekran_[0]))
     z_ln = np.linspace(Zmin, Zmax, len(ekran_))
     chel_y = np.where(y_ln == max([y_ for y_ in y_ln if y_ <= y_chel]))[0][0]
     chel_z = np.where(z_ln == max([z_ for z_ in z_ln if z_ <= z_chel]))[0][0]
 
+    # отрисовка графика
     def graph_do(znach, name_, x_lb='', y_lb=''):
         # ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
         # plt.clabel(ct, fontsize=10)
@@ -699,6 +756,7 @@ def visual_front_locomotive(ext_f):
         plt.ylabel(y_lb)
         plt.title(name_)
 
+    # вывод графика три раза
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
@@ -715,6 +773,7 @@ def visual_front_locomotive(ext_f):
     plt.suptitle(name)
     show(name)
 
+    # отрисовка поля по гарминикам, магнитного
     gph_num += 1
     plt.figure(gph_num)
     name = 'Гармоники магнитное вид спереди'
@@ -732,6 +791,7 @@ def visual_front_locomotive(ext_f):
     plt.suptitle(name)
     show(name)
 
+    # отрисовка поля по гармоникам, электрического
     gph_num += 1
     plt.figure(gph_num)
     name = 'Гармоники электрическое вид спереди'
@@ -754,15 +814,17 @@ def visual_front_locomotive(ext_f):
           sep='\n')
 
 
+# вид спереди постоянное поле
 def visual_front_post():
-
     print('Расчёт поля от тяговых двигателей')
+    # разбиение на узлы, границы графика, разбиение на точки
     dis_y, dis_z = 60, 60
     Ymin, Ymax = -0.6*width, 0.6*width
     Zmin, Zmax = floor+height+1, 0.1
     y_ln = np.linspace(Ymin, Ymax, dis_y, endpoint=True)
     z_ln = np.linspace(Zmin, Zmax, dis_z, endpoint=True)
 
+    # функция отрисовки
     def graph_do(znach, name_, x_lb='', y_lb='', lev=5):
         if lev:
             ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=lev)
@@ -774,8 +836,10 @@ def visual_front_post():
         plt.ylabel(y_lb)
         plt.title(name_)
 
+    # расчёт поля
     ted_field = ted_field_calc(y_ln, z_ln, I_ted, U_ted, 5, type_='FRONT')
 
+    # вызов отрисовки вида спереди как с экраном, так и без
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
@@ -791,6 +855,7 @@ def visual_front_post():
 
     plt.subplot(1, 2, 2)
 
+    # формирование графика только внутри кабины
     summar = np.array([el[0][0] * el[0][1] for el in front_ekran]).reshape(len(z_ln), len(y_ln))
     graph_do(summar, 'Энергия', x_lb='Ось y, метры', y_lb='Ось z, метры', lev=0)
     fr_kab_lines()
@@ -798,21 +863,22 @@ def visual_front_post():
 
     show(name)
 
+    # границы графика, пересборка точек
     Ymin, Ymax = -0.5*width, 0.5*width
     Zmax, Zmin = floor, floor+height
     z_points = [el[1][2] for el in ted_field if (el[1][2] > Zmax) and (el[1][2] < Zmin)]
     z_kab = list(sorted(set(z_points), reverse=True))
     y_points = [el[1][1] for el in ted_field if abs(el[1][1]) < Ymax]
     y_kab = list(sorted(set(y_points)))
-
     kabina = [[el for el in ted_field if (el[1][2] == z_) and (abs(el[1][1]) < Ymax)] for z_ in z_kab]
 
+    # формирование магнитной, электрической, энергетической составляющей
     magnetic = [[el[0][0] for el in z_list] for z_list in kabina]
     electric = [[el[0][1] for el in z_list] for z_list in kabina]
     energy = [[el[0][0] * el[0][0] for el in z_list] for z_list in kabina]
 
     y_ln, z_ln = y_kab, z_kab
-
+    # отрисовка графиков
     gph_num += 1
     plt.figure(gph_num)
     name = 'Вид спереди кабина постоянное экран'

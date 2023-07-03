@@ -10,12 +10,11 @@ from shapely.geometry import Polygon, LineString, Point
 plt.style.use('seaborn-white')
 cmap = 'YlOrRd'
 
-#todo проверить что всё сделали по ГС
-
 # РЕЖИМ РАБОТЫ СЕТИ
 
 I = 300  # cуммарная сила тока, А
-U = 30000  # cуммарное напряжение, В
+U = 25000  # cуммарное напряжение, В
+U_ep = U
 
 I_ted = 880  # сила тока в ТЭД, А
 U_ted = 1950  # напряжение в ТЭД, В
@@ -296,7 +295,8 @@ def magnetic_calc(x_m, z_m, f_m):
     h2ep_2 = mix(h2xep_2, h2zep_2)
     hep_sec = h1ep_2 + h2ep_2
 
-    # возвращаем значение поля от каждого провода
+    # рассчитав модуль поля в точке для каждого провода, составляем список из полученных значений.
+    # так как поля НТ, КП, УП складываются, их берём со знаком плюс, а ЕП вычитается - его со знаком минус
     return [hkp, hnt, hup, hkp_scd, hnt_scd, hup_sec, -hep, -hep_sec]
 
 
@@ -304,27 +304,30 @@ def magnetic_calc(x_m, z_m, f_m):
 def electric_calc(x_e, z_e, f_e):
 
     U_h = U * harm.get(f_e)[1]
+    U_hep = U_ep * harm.get(f_e)[1]
 
     ekp = U_h * log(1 + 4 * h_nt * z_e / ((x_e - xp_nt) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt))
     ent = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
     eup = U_h * log(1 + 4 * h_up * z_e / ((x_e - xp_up) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
-    eep = U_h * log(1 + 4 * h_ep * z_e / ((x_e - xp_ep) ** 2 + (h_ep - z_e) ** 2)) / (2 * z_e * log(2 * h_ep / d_ep))
+    eep = U_hep * log(1 + 4 * h_ep * z_e / ((x_e - xp_ep) ** 2 + (h_ep - z_e) ** 2)) / (2 * z_e * log(2 * h_ep / d_ep))
 
     ekp_scd = U_h * log(1 + 4 * h_nt * z_e / ((x_e - xp_nt2 - xp_mid) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt))
     ent_scd = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp2 - xp_mid) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
     eup_scd = U_h * log(1 + 4 * h_up * z_e / ((x_e - xp_up2 - xp_mid) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
-    eep_scd = U_h * log(1 + 4 * h_ep * z_e / ((x_e - xp_ep2 - xp_mid) ** 2 + (h_ep - z_e) ** 2)) / (2 * z_e * log(2 * h_ep / d_ep))
+    eep_scd = U_hep * log(1 + 4 * h_ep * z_e / ((x_e - xp_ep2 - xp_mid) ** 2 + (h_ep - z_e) ** 2)) / (2 * z_e * log(2 * h_ep / d_ep))
 
     return [ekp, ent, eup, ekp_scd, ent_scd, eup_scd, -eep, -eep_scd]
 
-
-#  суммирование поля: рассчитывали для каждой точки графика значения для каждой гармоники, теперь для графика суммируем
+#  суммирование поля: рассчитывали для каждой точки графика значения для каждой гармоники
 def full_field(res_en):
     sum_h, sum_e, sum_g = 0, 0, 0
+    # для получения итогового поля, суммируем значения от всех проводов в каждой точке
+    # так как ЕП уже записано со знаком минус, они вычитаются
     for en in res_en[0].values():
         sum_h += abs(sum(en[0]))  # магнитная составляющая
         sum_e += abs(sum(en[1]))  # электрическая составляющая
-        # энергия
+        # для расчёта энергии, перемножаем значение магнитного и электрического поля, затем складываем полученные значения
+        # так как ЕП имеют минус и по электричеству, и по магнитному, мы вычитаем значения их энергии
         sum_g += abs(
                  en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2] + \
                  en[0][3] * en[1][3] + en[0][4] * en[1][4] + en[0][5] * en[1][5] - \
@@ -462,14 +465,17 @@ def visual_up(z_srez=z_graph):
         plt.colorbar()
 
         # рисование и подпись проводов
-        for delta_y in [xp_kp, xp_up, xp_nt, xp_kp2+xp_mid, xp_nt2+xp_mid, xp_up2+xp_mid]:
+        for delta_y in [xp_kp, xp_up, xp_nt, xp_kp2+xp_mid, xp_nt2+xp_mid, xp_up2+xp_mid, xp_ep, xp_ep2+xp_mid]:
             plt.hlines(delta_y, Xmin, Xmax, color='black', linewidth=2)
         plt.text(0.1, xp_kp+0.05, 'КП', color='black')
         plt.text(1, xp_nt-0.3, 'НТ', color='black')
         plt.text(0.1, xp_up+0.05, 'УП', color='black')
+        plt.text(0.1, xp_ep+0.05, 'ЕП', color='black')
         plt.text(0.1, xp_kp2+xp_mid+0.05, 'КП2', color='black')
         plt.text(1, xp_nt2+xp_mid-0.3, 'НТ2', color='black')
         plt.text(0.1, xp_up2+xp_mid+0.05, 'УП2', color='black')
+        plt.text(0.1, xp_ep2+xp_mid+0.05, 'ЕП2', color='black')
+
 
         # рисование очертания поезда
         plt.hlines(0.5 * width, 0, length, colors='red', linestyles='--')
@@ -554,10 +560,10 @@ def visual_front():
         plt.text(xp_kp, h_kp, 'КП', color='black', fontsize=11)
         plt.text(xp_up, h_up, 'УП', color='black', fontsize=11)
         plt.text(xp_nt, h_nt, 'НТ', color='black', fontsize=11)
-        plt.text(xp_ep+10, h_ep, 'ЕП', color='black', fontsize=11)
+        plt.text(xp_ep+0.1, h_ep, 'ЕП', color='black', fontsize=11)
         plt.text(xp_kp2 + xp_mid, h_kp, 'КП2', color='black', fontsize=11)
         plt.text(xp_up2 + xp_mid, h_up, 'УП2', color='black', fontsize=11)
-        plt.text(xp_ep2-10 + xp_mid, h_ep, 'ЕП2', color='black', fontsize=11)
+        plt.text(xp_ep2-0.1 + xp_mid, h_ep, 'ЕП2', color='black', fontsize=11)
         plt.text(xp_nt2 + xp_mid, h_nt, 'НТ2', color='black', fontsize=11)
 
         fr_kab_lines()
@@ -566,7 +572,6 @@ def visual_front():
         plt.ylabel('Ось z, метры')
 
         plt.title(name_)
-        show(name_)
 
 
     # вывод графика, рисование уровней
@@ -582,6 +587,7 @@ def visual_front():
     plt.subplot(212)
     do_graph(energy, 'Энергия', x_lb='Ось x, метры', y_lb='Ось y, метры')
     plt.suptitle(name)
+    show(name)
 
     print('График построен.')
 

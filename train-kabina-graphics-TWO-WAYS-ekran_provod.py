@@ -322,12 +322,13 @@ def electric_calc(x_e, z_e, f_e):
 def full_field(res_en):
     sum_h, sum_e, sum_g = 0, 0, 0
     for en in res_en[0].values():
-        sum_h += sum(en[0])  # магнитная составляющая
-        sum_e += sum(en[1])  # электрическая составляющая
+        sum_h += abs(sum(en[0]))  # магнитная составляющая
+        sum_e += abs(sum(en[1]))  # электрическая составляющая
         # энергия
-        sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2] + \
-                 en[0][3] * en[1][3] + en[0][4] * en[1][4] + en[0][5] * en[1][5] + \
-                 (-en[0][6] * en[1][6] - en[0][7] * en[1][7])
+        sum_g += abs(
+                 en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2] + \
+                 en[0][3] * en[1][3] + en[0][4] * en[1][4] + en[0][5] * en[1][5] - \
+                 (en[0][6] * en[1][6] + en[0][7] * en[1][7]))
     return [sum_h, sum_e, sum_g]
 
 
@@ -533,13 +534,20 @@ def visual_front():
     energy = [[x_el[2] for x_el in y_list] for y_list in all_field]
 
     def do_graph(content, name_, x_lb='Ось x, метры', y_lb='Ось y, метры'):
-        # todo красиво
-        #b = 10 ** (len(str(round(np.amin(summar)))) - 1)  # для правильного отображения линий
-        #ct = plt.contour(y, z, summar, alpha=0.75, colors='black', linestyles='dotted',
-        #                 levels=[b, 2 * b, 5 * b, 7 * b, 10 * b, 20 * b, 50 * b, 100 * b, 200 * b, 500 * b, 700 * b])
-        ct = plt.contour(y, z, content, alpha=0.75, colors='black', linestyles='dotted', levels=5, norm=colors.LogNorm())
+
+        if name_ == 'Магнитное':
+            levels = [10, 20, 30, 50, 100]
+        elif name_ == 'Энергия':
+            levels = [10000, 20000, 30000, 50000]
+        elif name_ == 'Электрическое':
+            levels = [5000, 6000, 7000, 8000]
+        else:
+            levels = 5
+
+        ct = plt.contour(y, z, content, alpha=0.75, colors='black', linestyles='dotted', levels=levels)
         plt.clabel(ct, fontsize=10)
-        plt.imshow(energy, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
+        plt.imshow(content, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
+
         plt.colorbar()
 
         # названия проводов
@@ -558,11 +566,14 @@ def visual_front():
         plt.ylabel('Ось z, метры')
 
         plt.title(name_)
+        show(name_)
+
 
     # вывод графика, рисование уровней
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
+
     name = 'Контактная сеть вид сбоку'
     plt.subplot(221)
     do_graph(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
@@ -571,7 +582,6 @@ def visual_front():
     plt.subplot(212)
     do_graph(energy, 'Энергия', x_lb='Ось x, метры', y_lb='Ось y, метры')
     plt.suptitle(name)
-    show(name)
 
     print('График построен.')
 

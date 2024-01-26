@@ -88,7 +88,7 @@ max_up = Point(-0.5*width, sbor[2]).distance(Point(xp_up, h_up))
 
 # ЭКРАН
 
-# todo другие формулы
+# TODO другие формулы
 
 Z0 = 377  # волновое сопротивление поля, Ом
 mu = 1000  # относительная магнитная проницаемость стали
@@ -112,16 +112,6 @@ for fr in harm.keys():
     A = (delta * Ze / (10 ** -7)) ** 0.5  # первое слагаемое
     B = (lam / r_kab) ** (1 / 3)  # второе слагаемое
     ke_per[fr] = 0.024 * A * B * Ce * 0.001  # итоговый коэффициент
-
-# ОБОРУДОВАНИЕ
-
-# todo убрать
-# тяговый двигатель
-x_td1_sr = 0.9  # положение по оси х
-dy_td = 0.8  # расстояние от центра симметрии по оси у
-r_td = 0.604  # радиус
-l_td = 0.66  # длина
-z_td = 1  # положение по оси z
 
 
 # РАСЧЁТЫ
@@ -262,57 +252,6 @@ def ekran(en):
                 en[0][f][1][2] /= ke_per[fr]
     return en
 
-# TODO убрать
-# расчёт экрана постоянного поля
-def ekran_post(ext_en):
-    k_h, k_e = 1, 1
-    if (ext_en[1][2] > floor-1) and (ext_en[1][2] < floor+height):
-        if abs(ext_en[1][1]) <= 0.5*width:
-            k_h = kh
-            k_e = ke_post
-            if ext_en[1][2] > floor:
-                k_h *= kh
-                k_e *= ke_post
-
-    return [[ext_en[0][0] / k_h, ext_en[0][1] / k_e], ext_en[1]]
-
-# TODO убрать
-# расчёт постоянного поля
-def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
-    ds = 8
-
-    # разбиваем ТЭД на узлы
-    nodes_x = [x_td1_sr + 0.5*r_td * np.cos(ap) for ap in np.linspace(0, 2*pi, ds)]
-    nodes_z = [z_td + 0.5*r_td * np.sin(ap) for ap in np.linspace(0, 2*pi, ds)]
-    nodes_y = [td-td_p for td in [0] for td_p in np.linspace(-0.5*l_td, 0.5*l_td, 4)]
-
-    points = [[x_, y_, z_] for z_ in nodes_z for y_ in nodes_y for x_ in nodes_x]
-
-    # разбиваем кабину на узлы
-    if type_ == 'UP':
-        minus = [[x_, y_, z_] for z_ in (floor, floor-1) for y_ in y_arr for x_ in x_arr]
-    else:
-        x_cab = np.linspace(0, length, 40)
-        y_cab = np.linspace(-0.5*width, 0.5*width, 40)
-        minus = [[x_, y_, z_] for z_ in (floor, floor-1) for y_ in y_cab for x_ in x_cab]
-
-    def in_point(x_, y_, z_):
-        H_ob, E_ob = 0, 0
-        for p in points:
-            r = ((p[0]-x_)**2 + (p[1]-y_)**2 + (p[2]-z_)**2) ** 0.5
-            H_ob += I_g / (pi * l_td) * atan(l_td / 2 / r)
-            E_ob += U_g / r / len(points)
-
-        for m in minus:
-            r_m = ((m[0] - x_) ** 2 + (m[1] - y_) ** 2 + (m[2] - z_) ** 2) ** 0.5
-            if r_m != 0:
-                E_ob += U_g / r_m / len(minus)
-        return [[H_ob * n / len(points), E_ob], (x_, y_, z_)]
-
-    if type_ == 'UP':
-        return [in_point(x_, y_, z_graph) for y_ in y_arr for x_ in x_arr]
-    else:
-        return [in_point(x_chel, y_, z_) for z_ in y_arr for y_ in x_arr]
 
 # ГРАФИКА И ВЫВОД
 
@@ -358,31 +297,6 @@ def kab_lines_front():
     plt.vlines(-y_chel-d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
     plt.vlines(-y_chel+d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
 
-# отрисовка ТЕД
-# TODO убрать
-def ted_lines_front():
-    plt.hlines(z_td + 0.5*r_td, dy_td - 0.5*l_td, dy_td + 0.5*l_td, colors='blue', linestyles='--')
-    plt.hlines(z_td - 0.5*r_td, dy_td - 0.5*l_td, dy_td + 0.5*l_td, colors='blue', linestyles='--')
-    plt.hlines(z_td + 0.5*r_td, -dy_td - 0.5*l_td, -dy_td + 0.5*l_td, colors='blue', linestyles='--')
-    plt.hlines(z_td - 0.5*r_td, -dy_td - 0.5*l_td, -dy_td + 0.5*l_td, colors='blue', linestyles='--')
-
-    plt.vlines(dy_td - 0.5*l_td, z_td - 0.5*r_td, z_td + 0.5*r_td, colors='blue', linestyles='--')
-    plt.vlines(dy_td + 0.5*l_td, z_td - 0.5*r_td, z_td + 0.5*r_td, colors='blue', linestyles='--')
-    plt.vlines(-dy_td - 0.5*l_td, z_td - 0.5*r_td, z_td + 0.5*r_td, colors='blue', linestyles='--')
-    plt.vlines(-dy_td + 0.5*l_td, z_td - 0.5*r_td, z_td + 0.5*r_td, colors='blue', linestyles='--')
-
-# создание треугольников для расчёта постоянного поля
-def triang_do(triangulation, scalar_, name_, x_lb='Ось x, метры', y_lb='Ось y, метры', lev=5):
-    plt.axis('equal')
-    plt.tricontourf(triangulation, scalar_, cmap=cmap)
-    plt.colorbar()
-    tcf = plt.tricontour(triangulation, scalar_, alpha=0.75, colors='black', linestyles='dotted', levels=lev)
-    plt.clabel(tcf, fontsize=10)
-
-    plt.xlabel(x_lb)
-    plt.ylabel(y_lb)
-
-    plt.title(name_)
 
 # рисование линий кабины вид сверху
 def kab_lines_up():
@@ -614,53 +528,6 @@ def visual_up_locomotive(ext_f):
 
     show(name)
 
-# TODO убрать
-def visual_up_post():
-    print('Расчёт поля от тяговых двигателей....')
-    Xmin = 0
-    Xmax = length
-    Ymax = -0.5 * width
-    Ymin = -Ymax
-
-    dis = 60
-    x_ln = np.linspace(Xmin, Xmax, dis, endpoint=True)
-    y_ln = np.linspace(Ymin, Ymax, dis, endpoint=True)
-
-    def graph_do(znach, name_, x_lb='', y_lb=''):
-        ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
-        plt.clabel(ct, fontsize=10)
-        plt.imshow(znach, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95, norm=colors.LogNorm())
-        plt.colorbar()
-
-        plt.xlabel(x_lb)
-        plt.ylabel(y_lb)
-
-        plt.title(name_)
-
-    ted_field = ted_field_calc(x_ln, y_ln, I_ted, U_ted, 5)
-
-    magnetic = np.array([el[0][0]/kh for el in ted_field]).reshape(len(y_ln), len(x_ln))
-    electric = np.array([el[0][1]/ke_post for el in ted_field]).reshape(len(y_ln), len(x_ln))
-    energy = np.array([el[0][0]/kh * el[0][1]/ke_post for el in ted_field]).reshape(len(y_ln), len(x_ln))
-
-    global gph_num
-    gph_num += 1
-    plt.figure(gph_num)
-    name = 'Вид сверху кабина постоянное'
-    plt.subplot(1, 3, 1)
-    graph_do(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    kab_lines_up()
-    plt.subplot(1, 3, 2)
-    graph_do(electric, 'Электрическое', x_lb='Ось x, метры')
-    kab_lines_up()
-    plt.subplot(1, 3, 3)
-    graph_do(energy, 'Общее', x_lb='Ось x, метры')
-    kab_lines_up()
-
-    show(name)
-
-    print('График построен.')
-
 
 def visual_front_locomotive(ext_f):
     print('График строится..................')
@@ -764,83 +631,6 @@ def visual_front_locomotive(ext_f):
           'Гармоники электрического поля для человека', chel_harm_e,
           sep='\n')
 
-# TODO убрать
-def visual_front_post():
-
-    print('Расчёт поля от тяговых двигателей')
-    dis_y, dis_z = 60, 60
-    Ymin, Ymax = -0.6*width, 0.6*width
-    Zmin, Zmax = floor+height+1, 0.1
-    y_ln = np.linspace(Ymin, Ymax, dis_y, endpoint=True)
-    z_ln = np.linspace(Zmin, Zmax, dis_z, endpoint=True)
-
-    def graph_do(znach, name_, x_lb='', y_lb='', lev=5):
-        if lev:
-            ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=lev)
-            plt.clabel(ct, fontsize=10)
-        plt.imshow(znach, extent=[Ymin, Ymax, Zmax, Zmin],  cmap=cmap,  alpha=0.95, norm=colors.LogNorm())
-        plt.colorbar()
-
-        plt.xlabel(x_lb)
-        plt.ylabel(y_lb)
-        plt.title(name_)
-
-    ted_field = ted_field_calc(y_ln, z_ln, I_ted, U_ted, 5, type_='FRONT')
-
-    global gph_num
-    gph_num += 1
-    plt.figure(gph_num)
-    name = 'Вид спереди постоянное'
-    all_f_list = [el[0][0] * el[0][1] for el in ted_field]
-    print(len(all_f_list))
-    all_f = np.array(all_f_list).reshape(len(z_ln), len(y_ln))
-    plt.subplot(1, 2, 1)
-    graph_do(all_f, 'Энергия', x_lb='Ось y, метры', y_lb='Ось z, метры')
-    fr_kab_lines()
-    plt.title('Без экрана')
-    front_ekran = [ekran_post(el) for el in ted_field]
-
-    plt.subplot(1, 2, 2)
-
-    summar = np.array([el[0][0] * el[0][1] for el in front_ekran]).reshape(len(z_ln), len(y_ln))
-    graph_do(summar, 'Энергия', x_lb='Ось y, метры', y_lb='Ось z, метры', lev=0)
-    fr_kab_lines()
-    plt.title('С экраном')
-
-    show(name)
-
-    Ymin, Ymax = -0.5*width, 0.5*width
-    Zmax, Zmin = floor, floor+height
-    z_points = [el[1][2] for el in ted_field if (el[1][2] > Zmax) and (el[1][2] < Zmin)]
-    z_kab = list(sorted(set(z_points), reverse=True))
-    y_points = [el[1][1] for el in ted_field if abs(el[1][1]) < Ymax]
-    y_kab = list(sorted(set(y_points)))
-
-    kabina = [[el for el in ted_field if (el[1][2] == z_) and (abs(el[1][1]) < Ymax)] for z_ in z_kab]
-
-    magnetic = [[el[0][0] for el in z_list] for z_list in kabina]
-    electric = [[el[0][1] for el in z_list] for z_list in kabina]
-    energy = [[el[0][0] * el[0][0] for el in z_list] for z_list in kabina]
-
-    y_ln, z_ln = y_kab, z_kab
-
-    gph_num += 1
-    plt.figure(gph_num)
-    name = 'Вид спереди кабина постоянное экран'
-    plt.subplot(1, 3, 1)
-    kab_lines_front()
-    graph_do(magnetic, 'Магнитное', x_lb='Ось y, метры', lev=5)
-    plt.subplot(1, 3, 2)
-    kab_lines_front()
-    graph_do(electric, 'Электрическое', x_lb='Ось y, метры', lev=5)
-    plt.subplot(1, 3, 3)
-    kab_lines_front()
-    graph_do(energy, 'Общее', x_lb='Ось y, метры', y_lb='Ось z, метры', lev=5)
-    plt.suptitle(name)
-    show(name)
-
-    print('График построен.')
-
 
 # ВЫВОД ПАРАМЕТРОВ
 
@@ -850,8 +640,6 @@ print(f'Высота НЧ: {h_nt} м')
 print(f'Высота УП: {h_up} м')
 print(f'Напряжение: {U} Вольт')
 print(f'Суммарный ток: {I} Ампер')
-print(f'Напряжение ТЭД: {U_ted} Вольт')
-print(f'Ток ТЭД: {I_ted} Ампер')
 print(f'Высота среза: {z_graph} метров')
 
 # ПОСТРОЕНИЕ ГРАФИКА
@@ -865,11 +653,9 @@ cont_f_front = visual_front()
 
 print('\nПоле в кабине сверху')
 visual_up_locomotive(cont_f_up)
-visual_up_post()
 
 print('\nПоле в кабине спереди')
 visual_front_locomotive(cont_f_front)
-visual_front_post()
 
 # РАСЧЁТ СТАТИСТИКИ
 
@@ -888,12 +674,5 @@ print('\nПерменное поле с экраном %.4f' % ekran_per)
 Dco = ekran_per * ti * S * p
 Dpo = Dco / b
 print('Удельная суточная доза поглощённой энергии: %.4f' % Dpo)
-
-chel_f_post = ted_field_calc([y_chel], [z_chel], I_ted, U_ted, 5, type_='FRONT')[0][0]
-ekran_post_ = chel_f_post[0] / kh * chel_f_post[1] / ke_post
-print('\nПостоянное поле с экраном %.4f' % ekran_post_)
-Dco = ekran_post_ * ti * S * p
-Dpo = Dco / b
-print('Удельная суточная доза поглощённой энергии: %.8f' % Dpo)
 
 plt.show()

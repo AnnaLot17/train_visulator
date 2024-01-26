@@ -300,7 +300,7 @@ def magnetic_calc(x_m, z_m, f_m):
     return [hkp, hnt, hup, hkp_scd, hnt_scd, hup_sec, -hep, -hep_sec]
 
 
-# расчёт магнитного поля
+# расчёт электрического поля
 def electric_calc(x_e, z_e, f_e):
 
     U_h = U * harm.get(f_e)[1]
@@ -529,18 +529,21 @@ def visual_front():
     y = np.linspace(Ymin, Ymax, dis)
     z = np.linspace(Zmin, Zmax, dis)
 
-    # расчёт по точкам
+    # расчёт значений полей для каждой точки графика
     every_f = [[({fr: (magnetic_calc(y_, z_, fr), electric_calc(y_, z_, fr)) for fr in harm.keys()},
                  (x_chel, y_, z_)) for y_ in y] for z_ in z]
 
-    # суммирование гармоник
+    # применяем экран и считаем итоговое значение для каждой точки
     all_field = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
+
+    # формируем массивы значений на магнитную, электрическую составляющую и энергию
     magnetic = [[x_el[0] for x_el in y_list] for y_list in all_field]
     electric = [[x_el[1] for x_el in y_list] for y_list in all_field]
     energy = [[x_el[2] for x_el in y_list] for y_list in all_field]
 
+    # общая функция отрисовки графика
     def do_graph(content, name_, x_lb='Ось x, метры', y_lb='Ось y, метры'):
-
+        # задаём уровни
         if name_ == 'Магнитное':
             levels = [10, 20, 30, 50, 100]
         elif name_ == 'Энергия':
@@ -549,11 +552,13 @@ def visual_front():
             levels = [5000, 6000, 7000, 8000]
         else:
             levels = 5
-
+        # создаём объект точек графика
         ct = plt.contour(y, z, content, alpha=0.75, colors='black', linestyles='dotted', levels=levels)
+        # создаём линии уровней из объекта точек         
         plt.clabel(ct, fontsize=10)
+        # отрисовка
         plt.imshow(content, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
-
+        # раскраска     
         plt.colorbar()
 
         # названия проводов
@@ -565,16 +570,18 @@ def visual_front():
         plt.text(xp_up2 + xp_mid, h_up, 'УП2', color='black', fontsize=11)
         plt.text(xp_ep2-0.1 + xp_mid, h_ep, 'ЕП2', color='black', fontsize=11)
         plt.text(xp_nt2 + xp_mid, h_nt, 'НТ2', color='black', fontsize=11)
-
+        
+        # очертания кабины
         fr_kab_lines()
 
+        # название осей 
         plt.xlabel('Ось y, метры')
         plt.ylabel('Ось z, метры')
 
-        plt.title(name_)
+        plt.title(name_) # подпись названия
 
 
-    # вывод графика, рисование уровней
+    # отрисовка по очереди магнитного, электрического и энергии 
     global gph_num
     gph_num += 1
     plt.figure(gph_num)

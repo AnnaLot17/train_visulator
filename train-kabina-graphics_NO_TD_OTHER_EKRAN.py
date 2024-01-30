@@ -96,18 +96,19 @@ mu2 = 0.99
 
 n1 = (e1*mu1) ** 0.5
 n2 = (e2*mu2) ** 0.5
-d_glass = 4*n1*n2/((n1-n2) ** 2)
-
+k_glass = ((n1-n2)/(n1+n2)) ** 2
+d_glass = 1 - k_glass
 
 # РАСЧЁТЫ
 
-# по теореме Пифагора высчитывает значение вектора магнитного поля из составляющих х и y
+
+# по теореме Пифагора расчёт значения вектора из составляющих х и y
 def mix(h_x, h_zz):
     return (h_x ** 2 + h_zz ** 2) ** 0.5
 
+
 # магнитное поле гармоники f для заданной координаты x и z
 def magnetic_calc(x_m, z_m, f_m):
-    return [1,1,1] # todo
     # общая сила тока гармоники
     I_h = I * harm.get(f_m)[0]
 
@@ -171,9 +172,9 @@ def magnetic_calc(x_m, z_m, f_m):
     # результат выполнения этой функции - значения магнитных полей КП, НТ, УП для выбранной гармоники
     return [hkp, hnt, hup]
 
+
 # расчёт электрического поля для гармоники f в точке x, z
 def electric_calc(x_e, z_e, f_e):
-    return [1, 1, 1]  # todo
     # напряжение гармоники
     U_h = U * harm.get(f_e)[1]
 
@@ -185,13 +186,15 @@ def electric_calc(x_e, z_e, f_e):
     # результат - список значений полей от каждого провода
     return [ekp, ent, eup]
 
+
 # суммироввание всех полей для каждой точки:
 def full_field(res_en):
     sum_h, sum_e, sum_g = 0, 0, 0
     for en in res_en[0].values():
         sum_h += sum(en[0])  # магнитная составляющая
         sum_e += sum(en[1])  # электрическая составляющая
-        # для расчёта энергии, перемножаем значение магнитного и электрического поля, затем складываем полученные значения
+        # для расчёта энергии, перемножаем значения магнитного и электрического поля для каждого провода,
+        # затем складываем полученные значения
         sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2]
     # возвращаем значения магнитной, электрической и энергетической составляющей
     return [sum_h, sum_e, sum_g]
@@ -205,14 +208,14 @@ def ekran(en):
     # расстояние от текущей точки до КТ и НТ - для расчёта лобовых окон
     kppth = LineString([(x, y, z), (x, xp_kp, h_kp)])
     ntpth = LineString([(x, y, z), (x, xp_nt, h_nt)])
-
-    # проверяем, попадает ли лобовое окно
+    # проверяем, попадает ли лобовое окно по направлению от текущей точки до КТ, НТ
     kp_pass = kppth.intersects(frontWindleft) or kppth.intersects(frontWindright)
     nt_pass = ntpth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
 
     # для каждого провода проверяем, попадает ли текущая точка в тень от бокового окна или нет
     kp_dist = Point(y, z).distance(Point(xp_kp, h_kp))  # направление от точки до провода
-    # пересекает ли это направление окно
+    # есть ли на пути этого направления окно
+    # для КП и НТ - учитываем значение для лобового стекла логическим сложением
     kp_pass |= (kp_dist >= min_kp) and (kp_dist <= max_kp) and (x >= sbor[0]) and (x <= sbor[1])
 
     nt_dist = Point(y, z).distance(Point(xp_nt, h_nt))
@@ -222,83 +225,80 @@ def ekran(en):
     up_pass = (up_dist >= min_up) and (up_dist <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
 
     # для каждой точки внутри кабины проверяем, проходит ли для неё какое-либо поле через стекло
-    # если да - применяем коэффициент преломлённой волны
-
     # сталь: электрическое поле полностью отражается, магнитное полностью затухает
     # стекло: и электрическое, и магнитное домножаются на d_glass по формуле:
     # Эпрел = Эпад*d = (ExH)*d = E*d x H*d
-    # TODO
-    '''
     if (abs(y) <= 0.5*width) and (z >= floor) and (z <= floor+height):
         # внутри кабины
         if kp_pass:
             # поле КП через стекло
+            for f in en[0].keys():
+                en[0][f][0][0] *= d_glass
+                en[0][f][1][0] *= d_glass
         if nt_pass:
             # поле НТ через стекло
+            for f in en[0].keys():
+                en[0][f][0][1] *= d_glass
+                en[0][f][1][1] *= d_glass
         if up_pass:
             # поле УП через стекло
+            for f in en[0].keys():
+                en[0][f][0][2] *= d_glass
+                en[0][f][1][2] *= d_glass
         if not (kp_pass or nt_pass or up_pass):
-            # вообще всё по нулям
-
-
-
-
-        if not kp_pass:
+            # если ни через одно стекло не проходит, значит тут сталь, т.е. поле близко нулю
+            # принимаем поле от всех проводов равным 1 в этих точках для удобства отображения на графике
             for f in en[0].keys():
-                en[0][f][0][0] /= kh
-                en[0][f][1][0] /= ke_per[fr]
-        if not nt_pass:
-            for f in en[0].keys():
-                en[0][f][0][1] /= kh
-                en[0][f][1][1] /= ke_per[fr]
-        if not up_pass:
-            for f in en[0].keys():
-                en[0][f][0][2] /= kh
-                en[0][f][1][2] /= ke_per[fr]
-    '''
+                en[0][f][0] = [1, 1, 1]
+                en[0][f][1] = [1, 1, 1]
+
     return en
 
 
 # ГРАФИКА И ВЫВОД
 
-# сохранение файла с картинкой
+# сохранение картинки в файл
 def show(name):
     mng = plt.get_current_fig_manager()  # захват изображения 
     # mng.window.state('zoomed')  # вывод изображения на весь экран если граф.оболочка это поддерживает
-    # todo plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
+    plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
     # сохранение картинки в файл дата_время_название.png в папку со скриптом
 
-# рисование линий кабины вид спереди
-def fr_kab_lines():
-    ln_ = '--'
 
-    cl_ = 'royalblue'
+# рисование линий кабины вид спереди
+def fr_kab_lines(star=False):
+    ln_ = '--'  # стиль линии
+
+    cl_ = 'royalblue'  # окна
     plt.hlines(bor[4], bor[2], bor[3], colors=cl_, linestyles=ln_)
     plt.hlines(bor[5], bor[2], bor[3], colors=cl_, linestyles=ln_)
     plt.vlines(bor[2], bor[4], bor[5], colors=cl_, linestyles=ln_)
     plt.vlines(bor[3], bor[4], bor[5], colors=cl_, linestyles=ln_)
     plt.vlines(0, bor[4], bor[5], colors=cl_, linestyles=ln_)
 
-    cl_ = 'red'
-    plt.hlines(bor[4] - .3, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=3)
-    plt.hlines(floor + .3, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=3)
-    plt.hlines(1.4, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=4)
-    plt.scatter(0, 2.7, s=200, marker='*', color=cl_)
+    if star:
+        cl_ = 'red'  # полосы и зезда
+        plt.hlines(bor[4] - .3, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=3)
+        plt.hlines(floor + .3, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=3)
+        plt.hlines(1.4, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=4)
+        plt.scatter(0, 2.7, s=200, marker='*', color=cl_)
 
-    cl_ = 'forestgreen'
+    cl_ = 'forestgreen'  # очертания кабины
     plt.hlines(height + floor, -0.5 * width, 0.5 * width, colors=cl_, linestyles=ln_)
     plt.hlines(floor + .1, -0.5 * width, 0.5 * width, colors=cl_, linestyles=ln_)
     plt.hlines(1, -0.5 * width, 0.5 * width, colors=cl_, linestyles=ln_)
     plt.vlines(-0.5 * width, 1, height + floor, colors=cl_, linestyles=ln_)
     plt.vlines(0.5 * width, 1, height + floor, colors=cl_, linestyles=ln_)
 
+    # головная фара и крыша
     bj1 = ptch.Arc((0, floor + height), width, 1, theta1=0, theta2=180, color=cl_, linestyle=ln_)
     bj2 = ptch.Circle((0, floor + height + 0.3), 0.2, color=cl_, linestyle=ln_, fill=None)
 
     for bj in [bj1, bj2]:
         plt.gca().add_artist(bj)
 
-# рисование линий кабины вид спереди - для варианта с экраном (более схематично + стулья)
+
+# рисование линий внутри кабины
 def kab_lines_front():
     d = 0.13
     cl = 'blue'
@@ -382,7 +382,7 @@ def visual_up():
 
     # расчёт значений полей для каждой точки графика
     every_f = [[[{fr: [magnetic_calc(y_, z_graph, fr), electric_calc(y_, z_graph, fr)] for fr in harm.keys()},
-                 (x_, y_, z_graph)] for x_ in x] for y_ in y]
+                 [x_, y_, z_graph]] for x_ in x] for y_ in y]
 
     # применяем экран и считаем итоговое значение для каждой точки
     summar = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
@@ -440,11 +440,12 @@ def visual_up():
 
     return every_f  # возвращаем поле для перерасчёта с локомотивом
 
+
 # вывод вида спереди без электровоза
 def visual_front():
     print('График строится..................')
 
-   # границы графика
+    # границы графика
     Ymax = 1 * max(xp, width) * 1.15
     Ymin = xp_up * 1.2
     Zmax = 0.1
@@ -455,8 +456,8 @@ def visual_front():
     z = np.linspace(Zmin, Zmax, dis)
 
     # расчёт значений полей для каждой точки графика
-    every_f = [[({fr: (magnetic_calc(y_, z_, fr), electric_calc(y_, z_, fr)) for fr in harm.keys()},
-                 (x_chel, y_, z_)) for y_ in y] for z_ in z]
+    every_f = [[[{fr: [magnetic_calc(y_, z_, fr), electric_calc(y_, z_, fr)] for fr in harm.keys()},
+                 [x_chel, y_, z_]] for y_ in y] for z_ in z]
 
     # считаем итоговое значение для каждой точки
     all_field = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
@@ -484,7 +485,7 @@ def visual_front():
     plt.text(xp_nt, h_nt, 'НТ', color='white', fontsize=14)
 
     # очертания кабины
-    fr_kab_lines()
+    fr_kab_lines(star=True)
 
     # название осей 
     plt.xlabel('Ось y, метры')
@@ -496,6 +497,7 @@ def visual_front():
 
     print('График построен.')
     return every_f   # возвращаем поле для перерасчёта с локомотивом
+
 
 # вывод вида сверху с электровозом
 def visual_up_locomotive(ext_f):
@@ -510,22 +512,11 @@ def visual_up_locomotive(ext_f):
     inside = [[full_field(ekran(el)) for el in y_list if (el[1][0] >= Xmin) and (el[1][0] <= Xmax)]
               for y_list in ext_f if abs(y_list[0][1][1]) <= 0.5 * width]
 
-    # разбиение на точки
-    x_ln = np.linspace(Xmin, Xmax, len(inside[0]))
-    y_ln = np.linspace(Ymin, Ymax, len(inside))
-
     # формируем массивы значений на магнитную, электрическую составляющую и энергию
-    magnetic = [[x_el[0] for x_el in y_list] for y_list in inside]
-    electric = [[x_el[1] for x_el in y_list] for y_list in inside]
     energy = [[x_el[2] for x_el in y_list] for y_list in inside]
 
     # общая функция отрисовки графика
     def graph_do(znach, name_, x_lb='', y_lb=''):
-        # # создаём объект точек графика
-        # ct = plt.contour(x_ln, y_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
-        # # создаём линии уровней из объекта точек         
-        # plt.clabel(ct, fontsize=10)
-        # #TODO линии уровней убрали чтобы не загораживали график
         # отрисовка
         plt.imshow(znach, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95, norm=colors.LogNorm())
         # раскраска          
@@ -537,22 +528,13 @@ def visual_up_locomotive(ext_f):
 
         plt.title(name_)  # подпись названия
 
-    # отрисовка по очереди магнитного, электрического и энергии 
+    # отрисовка энергии
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
-    name = 'Кабина вид сверху (c экраном)'
-    #TODO только энергия
-    plt.title(name)
-    plt.subplot(1, 3, 1)
+    name = 'Кабина вид сверху (c экраном) - энергия'
+    graph_do(energy, name, x_lb='Ось x, метры',)
     kab_lines_up()
-    graph_do(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    plt.subplot(1, 3, 2)
-    kab_lines_up()
-    graph_do(electric, 'Электрическое', x_lb='Ось x, метры')
-    plt.subplot(1, 3, 3)
-    kab_lines_up()
-    graph_do(energy, 'Энергия', x_lb='Ось x, метры',)
     show(name)
 
 
@@ -569,9 +551,7 @@ def visual_front_locomotive(ext_f):
 
     # перевод значений посчитанных для каждой гармоники каждого провода в одно значение
     summar = [[full_field(x_el) for x_el in y_list] for y_list in ekran_]
-    # составление графика на магнитную, электрическую составляющую и энергию
-    magnetic = [[x_el[0] for x_el in y_list] for y_list in summar]
-    electric = [[x_el[1] for x_el in y_list] for y_list in summar]
+    # выбор значений только энергии
     energy = [[x_el[2] for x_el in y_list] for y_list in summar]
 
     # разбиение по точкам
@@ -583,10 +563,6 @@ def visual_front_locomotive(ext_f):
 
     # общая функция отрисовки графика
     def graph_do(znach, name_, x_lb='', y_lb=''):
-        # # создаём объект точек графика
-        # ct = plt.contour(y_ln, z_ln, znach, alpha=0.95, colors='black', linestyles='dotted', levels=5)
-        # # создаём линии уровней из объекта точек           
-        # plt.clabel(ct, fontsize=10)
         # отрисовка        
         plt.imshow(znach, extent=[Ymin, Ymax, Zmax, Zmin],  cmap=cmap,  alpha=0.95, norm=colors.LogNorm())
         # раскраска    
@@ -598,74 +574,46 @@ def visual_front_locomotive(ext_f):
         plt.xlabel(x_lb)
         plt.ylabel(y_lb)
 
-        plt.title(name_) # подпись названия
+        plt.title(name_)  # подпись названия
 
-    # отрисовка по очереди магнитного, электрического и энергии
-    #TODO только энергия
+    # отрисовка энергии поля
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
-    name = 'Кабина вид спереди (c экраном)'
-    plt.title(name)
-    plt.subplot(1, 3, 1)
-    graph_do(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    name = 'Кабина вид спереди (c экраном) - энергия'
+    graph_do(energy, name, x_lb='Ось x, метры', )
     kab_lines_front()
-    plt.subplot(1, 3, 2)
-    graph_do(electric, 'Электрическое', x_lb='Ось x, метры')
-    kab_lines_front()
-    plt.subplot(1, 3, 3)
-    graph_do(energy, 'Энергия', x_lb='Ось x, метры', )
-    kab_lines_front()
-    plt.suptitle(name)
     show(name)
 
-    # отрисовка гармоник на одном графике
-    #TODO только энергия
+    # отрисовка отрисовка энергии по гармоникам
     gph_num += 1
     plt.figure(gph_num)
-    name = 'Гармоники магнитного поля вид спереди'
+    name = 'Гармоники вид спереди - энергия'
     plt.title(name)
     i = 0
-    chel_harm_h = []
+    chel_harm = {}
     # для каждой гармоники формируем массив точек на отрисовку + считаем воздействие в положении человека
     for fr in harm.keys():
         i += 1
         plt.subplot(3, 3, i)
-        data = [[sum(el[0][fr][0]) for el in lst]for lst in ekran_]
-        chel_harm_h.append(data[chel_z][chel_y])
+        # считаем энергию для конкретной гармоники
+        data = [[el[0][fr][0][0]*el[0][fr][1][0] +
+                 el[0][fr][0][1]*el[0][fr][1][1] +
+                 el[0][fr][0][2]*el[0][fr][1][2]
+                    for el in lst]for lst in ekran_]
+        chel_harm[fr] = data[chel_z][chel_y]
         graph_do(data, '', y_lb=str(fr))
         kab_lines_front()
     plt.subplot(3, 3, 9)
-    plt.bar(range(0, len(harm.keys())), chel_harm_h)
+    plt.bar(range(0, len(harm.keys())), chel_harm.values())
     plt.suptitle(name)
     show(name)
 
-    # то же самое для электрического поля
-    gph_num += 1
-    plt.figure(gph_num)
-    name = 'Гармоники электрического поля вид спереди'
-    plt.title(name)
-    i = 0
-    chel_harm_e = []
-    for fr in harm.keys():
-        i += 1
-        plt.subplot(3, 3, i)
-        data = [[sum(el[0][fr][1]) for el in lst]for lst in ekran_]
-        chel_harm_e.append(data[chel_z][chel_y])
-        graph_do(data, '', y_lb=str(fr))
-        kab_lines_front()
-    plt.subplot(3, 3, 9)
-    plt.bar(range(0, len(harm.keys())), chel_harm_e)
-    plt.suptitle(name)
-    show(name)
-
-    print('Гармоники магнитного поля для человека', chel_harm_h,
-          'Гармоники электрического поля для человека', chel_harm_e,
-          sep='\n')
+    # возвращаем значения для гармоник в координатах человека чтобы вывести в блоке статистики
+    return chel_harm
 
 
 # ВЫВОД ПАРАМЕТРОВ
-
 print('\nПараметры сети')
 print(f'Высота КП: {h_kp} м')
 print(f'Высота НЧ: {h_nt} м')
@@ -679,25 +627,26 @@ print(f'Высота среза: {z_graph} метров')
 gph_num = 0
 print('\nБез электровоза:')
 print('\nВид сверху')
-#cont_f_up = visual_up()
-
-# todo
+cont_f_up = visual_up()
 
 print('\nВид спереди')
 cont_f_front = visual_front()
-plt.show()
-exit()
+
 
 print('\nКабина электровоза:')
 print('\nВид сверху')
 visual_up_locomotive(cont_f_up)
 
 print('\nВид спереди')
-visual_front_locomotive(cont_f_front)
+chel_harm = visual_front_locomotive(cont_f_front)
 
 # РАСЧЁТ СТАТИСТИКИ
 
 print('СТАТИСТИКА\n')
+
+print('Гармоники энергии поля для человека:')
+for f, znach in chel_harm.items():
+    print(f, ': %.4f' % znach)
 
 S = (a * b / 3600) ** 1 / 2
 p = ti / 24  # статистическая вероятность воздействия
@@ -708,7 +657,7 @@ no_ekran_per = full_field(chel_f_per)[2]
 print('\nПеременное поле без экрана: %.4f' % no_ekran_per)
 
 ekran_per = full_field(ekran(chel_f_per))[2]
-print('\nПерменное поле с экраном %.4f' % ekran_per)
+print('Переменное поле с экраном %.4f' % ekran_per)
 Dco = ekran_per * ti * S * p
 Dpo = Dco / b
 print('Удельная суточная доза поглощённой энергии: %.4f' % Dpo)

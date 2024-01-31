@@ -275,6 +275,11 @@ def fr_kab_lines(star=False):
     plt.vlines(bor[2], bor[4], bor[5], colors=cl_, linestyles=ln_)
     plt.vlines(bor[3], bor[4], bor[5], colors=cl_, linestyles=ln_)
     plt.vlines(0, bor[4], bor[5], colors=cl_, linestyles=ln_)
+    # дворники
+    plt.plot(np.array([bor[2]+.1, bor[2]+0.6]),
+             np.array([bor[4]+.1, bor[5]+.1]), c=cl_, linestyle=ln_)
+    plt.plot(np.array([bor[3]-.1, bor[3]-0.6]),
+             np.array([bor[4]+.1, bor[5]+.1]), c=cl_, linestyle=ln_)
 
     if star:
         cl_ = 'red'  # полосы и зезда
@@ -283,6 +288,16 @@ def fr_kab_lines(star=False):
         plt.hlines(1.4, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=4)
         plt.scatter(0, 2.7, s=200, marker='*', color=cl_)
 
+        # пантограф
+        cl_ = 'forestgreen'
+        for i in range(1, 6):
+            plt.hlines(height + floor + .3 + i * .08, -.4, -.7, colors=cl_, linestyles='solid')
+            plt.hlines(height + floor + .3 + i * .08, .4, .7, colors=cl_, linestyles='solid')
+        h = height + floor + .3 + 6 * .08
+        plt.plot(np.array([-.8, -.8, .8, .8, -.8]),
+                 np.array([h, h_kp-.1, h_kp-.1, h, h]),
+                 c=cl_, linestyle=ln_)
+
     cl_ = 'forestgreen'  # очертания кабины
     plt.hlines(height + floor, -0.5 * width, 0.5 * width, colors=cl_, linestyles=ln_)
     plt.hlines(floor + .1, -0.5 * width, 0.5 * width, colors=cl_, linestyles=ln_)
@@ -290,8 +305,15 @@ def fr_kab_lines(star=False):
     plt.vlines(-0.5 * width, 1, height + floor, colors=cl_, linestyles=ln_)
     plt.vlines(0.5 * width, 1, height + floor, colors=cl_, linestyles=ln_)
 
+    # низ
+    plt.plot(np.array([-.5 * width+.1, -.5 * width + .4, .5 * width - .4, .5 * width-.1]),
+             np.array([1, .4, .4, 1]), c=cl_, linestyle=ln_)
+    delta = (width-.2)/6
+    for i in range(1,6):
+        plt.vlines(-.5*width+.1+delta*i, 1, .6, colors=cl_, linestyles=ln_)
+
     # головная фара и крыша
-    bj1 = ptch.Arc((0, floor + height), width, 1, theta1=0, theta2=180, color=cl_, linestyle=ln_)
+    bj1 = ptch.Arc((0, floor + height), width, .8, theta1=0, theta2=180, color=cl_, linestyle=ln_)
     bj2 = ptch.Circle((0, floor + height + 0.3), 0.2, color=cl_, linestyle=ln_, fill=None)
 
     for bj in [bj1, bj2]:
@@ -613,6 +635,11 @@ def visual_front_locomotive(ext_f):
     return chel_harm
 
 
+# визуализируем вид спереди с учётом отражённой от экрана
+def visual_front_ekran(ext_f):
+    pass
+
+
 # ВЫВОД ПАРАМЕТРОВ
 print('\nПараметры сети')
 print(f'Высота КП: {h_kp} м')
@@ -632,13 +659,15 @@ cont_f_up = visual_up()
 print('\nВид спереди')
 cont_f_front = visual_front()
 
-
 print('\nКабина электровоза:')
 print('\nВид сверху')
 visual_up_locomotive(cont_f_up)
 
 print('\nВид спереди')
 chel_harm = visual_front_locomotive(cont_f_front)
+
+# print('\nВид спереди для отражённого поля')
+# visual_front_ekran(cont_f_front)
 
 # РАСЧЁТ СТАТИСТИКИ
 

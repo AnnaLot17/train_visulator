@@ -16,9 +16,6 @@ cmap = 'YlOrRd'
 I = 300  # cуммарная сила тока, А
 U = 30000  # cуммарное напряжение, В
 
-I_ted = 880  # сила тока в ТЭД, А
-U_ted = 1950  # напряжение в ТЭД, В
-
 # СТАТИСТИЧЕСКИЕ ДАННЫЕ
 x_chel = 0.9  # положение человека по оси х
 y_chel = 0.9  # положение человека по оси y
@@ -313,6 +310,16 @@ def ekran(en, reflect=False):
             for f in en[0].keys():
                 en[0][f][0][0] *= k_glass
                 en[0][f][1][0] *= k_glass
+                en[0][f][0][1] *= k_glass
+                en[0][f][1][1] *= k_glass
+                en[0][f][0][2] *= k_glass
+                en[0][f][1][2] *= k_glass
+                en[0][f][0][3] *= k_glass
+                en[0][f][1][3] *= k_glass
+                en[0][f][0][4] *= k_glass
+                en[0][f][1][4] *= k_glass
+                en[0][f][0][5] *= k_glass
+                en[0][f][1][5] *= k_glass
         return en
 
     # расстояние от текущей точки до КТ и НТ - для расчёта лобовых окон
@@ -415,7 +422,7 @@ def fr_kab_lines(star=False):
              np.array([bor[4] + .1, bor[5] + .1]), c=cl_, linestyle=ln_)
 
     if star:
-        cl_ = 'red'  # полосы и зезда
+        cl_ = 'red'  # полосы и звезда
         plt.hlines(bor[4] - .3, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=3)
         plt.hlines(floor + .3, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=3)
         plt.hlines(1.4, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=4)
@@ -423,13 +430,13 @@ def fr_kab_lines(star=False):
 
         # пантограф
         cl_ = 'forestgreen'
-        for i in range(1, 6):
-            plt.hlines(height + floor + .3 + i * .08, -.4, -.7, colors=cl_, linestyles='solid')
-            plt.hlines(height + floor + .3 + i * .08, .4, .7, colors=cl_, linestyles='solid')
-        h = height + floor + .3 + 6 * .08
-        plt.plot(np.array([-.8, -.8, .8, .8, -.8]),
-                 np.array([h, h_kp - .1, h_kp - .1, h, h]),
-                 c=cl_, linestyle=ln_)
+        delta = (h_kp - (height + floor + .3) - .2)/12
+        for i in range(1, 12):
+            plt.hlines(height + floor + .3 + i * delta, -.4, -.7, colors=cl_, linestyles='solid')
+            plt.hlines(height + floor + .3 + i * delta, .4, .7, colors=cl_, linestyles='solid')
+        plt.plot(np.array([-.5*width, -1, 1, .5*width]),
+                 np.array([h_kp-.4, h_kp-.1, h_kp-.1, h_kp-.4]),
+                 c=cl_, linestyle='solid', lw=3)
 
     cl_ = 'forestgreen'  # очертания кабины
     plt.hlines(height + floor, -0.5 * width, 0.5 * width, colors=cl_, linestyles=ln_)
@@ -699,7 +706,7 @@ def visual_up_locomotive(ext_f):
     graph_do(energy, name, x_lb='Ось x, метры', )
     kab_lines_up()
     show(name)
-
+    print('График построен.')
 
 def visual_front_locomotive(ext_f):
     print('График строится..................')
@@ -775,6 +782,7 @@ def visual_front_locomotive(ext_f):
     plt.suptitle(name)
     show(name)
 
+    print('График построен.')
     # возвращаем значения для гармоник в координатах человека чтобы вывести в блоке статистики
     return chel_harm
 
@@ -836,6 +844,7 @@ def visual_front_ekran(ext_f):
     plt.title(name_)  # подпись названия
 
     show(name_)  # вывести и сохранить
+    print('График построен.')
 
 
 # ВЫВОД ПАРАМЕТРОВ

@@ -7,6 +7,15 @@ import matplotlib.colors as colors
 import matplotlib.patches as ptch
 from shapely.geometry import Polygon, LineString, Point
 
+#todo
+# стекло вид спереди
+# стекло вид сверху
+# экран стекла - сразу?
+# суммирование
+# вернуть всё как было
+# переделать двупутный
+# убрать из таблицы не позорится
+
 # цветоваяя схема графиков
 plt.style.use('seaborn-white')
 cmap = 'YlOrRd'
@@ -23,6 +32,7 @@ U_ted = 1950  # напряжение в ТЭД, В
 x_chel = 0.9  # положение человека по оси х
 y_chel = 0.9  # положение человека по оси y
 floor = 2  # расстояние от земли до дна кабины
+gr_floor = 1  # высота самого низа электровоза
 z_chair = floor + 1.2  # сидушка стула
 z_chel = floor + 1.5  # где находится человек по оси z
 a = 1.75  # высота человека метры
@@ -31,8 +41,8 @@ ti = 1  # длительность пребывания работника на 
 z_graph = z_chel  # высота среза
 
 # КОНСТАНТЫ
-
-dis = 100  # дискретизация графиков (меньше - менее точно, но быстрее считает; больше - точнее, но дольше расчёт)
+#todo
+dis = 40  # дискретизация графиков (меньше - менее точно, но быстрее считает; больше - точнее, но дольше расчёт)
 harm = {50: [1, 1],
         150: [0.3061, 0.400],
         250: [0.1469, 0.115],
@@ -41,6 +51,8 @@ harm = {50: [1, 1],
         550: [0.0282, 0.036],
         650: [0.0196, 0.032],
         750: [0.0147, 0.022]}
+
+comp = (1 / len(harm.keys()) / 3) ** .5  # компенсаторное значение для тех точек, где энергия боизка к 0
 
 # ДАННЫЕ О КОНТАКТНОЙ СЕТИ
 
@@ -62,9 +74,9 @@ all_length = 15.2  # длина всего локомотива
 width = 2.8  # ширина кабины
 height = 2.6  # высота кабины
 # min_x, max_x, min_y, max_y, min_z, max_z
-bor = [0.2, 0.6, -1.2, 1.2, floor+1.5, floor+2.2]  # узлы окна
+bor = [0.2, 0.6, -1.2, 1.2, floor + 1.5, floor + 2.2]  # узлы окна
 # min_x, max_x, min_z, max_z
-sbor = [0.3, 1, floor+1.5, floor+2.2]  # узлы для бокового окна
+sbor = [0.3, 1, floor + 1.5, floor + 2.2]  # узлы для бокового окна
 
 # формируем передние окна методом Polygon: составляем список из координат точек по x, y, z каждого угла
 frontWindleft = Polygon([(bor[0], bor[2], bor[4]),
@@ -78,14 +90,14 @@ frontWindright = Polygon([(bor[0], 0.22, bor[4]),
                           (bor[0], bor[3], bor[4])])
 
 # расчёт границ теней боковых окон для кажого источника поля
-min_nt = Point(0.5*width, sbor[3]).distance(Point(xp_nt, h_nt)) # луч нижней границы тени от НТ
-max_nt = Point(0.5*width, sbor[2]).distance(Point(xp_nt, h_nt)) # луч верхней границы тени от НТ
+min_nt = Point(0.5 * width, sbor[3]).distance(Point(xp_nt, h_nt))  # луч нижней границы тени от НТ
+max_nt = Point(0.5 * width, sbor[2]).distance(Point(xp_nt, h_nt))  # луч верхней границы тени от НТ
 
-min_kp = Point(0.5*width, sbor[3]).distance(Point(xp_kp, h_kp)) # далее аналогично для остальных проводов
-max_kp = Point(0.5*width, sbor[2]).distance(Point(xp_kp, h_kp))
+min_kp = Point(0.5 * width, sbor[3]).distance(Point(xp_kp, h_kp))  # далее аналогично для остальных проводов
+max_kp = Point(0.5 * width, sbor[2]).distance(Point(xp_kp, h_kp))
 
-min_up = Point(-0.5*width, sbor[3]).distance(Point(xp_up, h_up))
-max_up = Point(-0.5*width, sbor[2]).distance(Point(xp_up, h_up))
+min_up = Point(-0.5 * width, sbor[3]).distance(Point(xp_up, h_up))
+max_up = Point(-0.5 * width, sbor[2]).distance(Point(xp_up, h_up))
 
 # ЭКРАН
 # стекло - высчитываем d для подсчёта энергии преломлённой волны
@@ -94,10 +106,11 @@ e2 = 4
 mu1 = 1
 mu2 = 0.99
 
-n1 = (e1*mu1) ** 0.5
-n2 = (e2*mu2) ** 0.5
-k_glass = ((n1-n2)/(n1+n2)) ** 2
+n1 = (e1 * mu1) ** 0.5
+n2 = (e2 * mu2) ** 0.5
+k_glass = ((n1 - n2) / (n1 + n2)) ** 2
 d_glass = 1 - k_glass
+
 
 # РАСЧЁТЫ
 
@@ -108,7 +121,7 @@ def mix(h_x, h_zz):
 
 
 # магнитное поле гармоники f для заданной координаты x и z
-def magnetic_calc(x_m, z_m, f_m):
+def magnetic_calc(x_m, z_m, f_m, reflect=False):
     # общая сила тока гармоники
     I_h = I * harm.get(f_m)[0]
 
@@ -117,23 +130,34 @@ def magnetic_calc(x_m, z_m, f_m):
     Int = 0.20 * I_h
     Iup = 0.39 * I_h
 
+    # если отражение идёт от стекла, магнитная составляющая отражается - корректируем координаты
+    if reflect:
+        if abs(x_m) < bor[3] and z_m > floor + height:  # лобовые
+            z_m = 2 * (height + floor) - z_m
+        elif z_m > sbor[2] and z_m < sbor[3] and x_m < -.5 * width:  # левое боковое
+            x_m = -width - x_m
+        elif z_m > sbor[2] and z_m < sbor[3] and x_m > .5 * width:  # правое боковое
+            x_m = width - x_m
+        else:
+            return [comp, comp, comp]
+
     # расчёт x и z составляющих магнитного поля от правого рельса для КП
     x = x_m - xp_kp
     h1xkp = Ikp / (4 * pi) * (
-                -z_m / ((x + xp) ** 2 + z_m**2) + (z_m - h_kp)/(x ** 2 + (h_kp - z_m)**2))
+            -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / (x ** 2 + (h_kp - z_m) ** 2))
     h1zkp = Ikp / (4 * pi) * (x + xp) * (
-                1 / ((x + xp) ** 2 + z_m ** 2) - 1/(x ** 2 + (h_kp - z_m) ** 2))
+            1 / ((x + xp) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_kp - z_m) ** 2))
     # сумма (по т.Пифагора) векторов x и z
     h1kp = mix(h1xkp, h1zkp)
     # расчёт x и z составляющих магнитного поля от левого рельса для КП
-    x = x_m - 2*xp - xp_kp
+    x = x_m - 2 * xp - xp_kp
     h2xkp = Ikp / (4 * pi) * (
-                -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
+            -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / ((x + 2 * xp) ** 2 + (h_kp - z_m) ** 2))
     h2zkp = Ikp / (4 * pi) * (x + 2 * xp) * (
-                1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
-    # сумма (по т.Пифагора) векторов x и z    
+            1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2 * xp) ** 2 + (h_kp - z_m) ** 2))
+    # сумма (по т.Пифагора) векторов x и z
     h2kp = mix(h2xkp, h2zkp)
-    # суммарное поле двух рельс    
+    # суммарное поле двух рельс
     hkp = h1kp + h2kp
 
     # далее аналогично для остальных проводов:
@@ -165,7 +189,8 @@ def magnetic_calc(x_m, z_m, f_m):
     h2xup = Iup / (4 * pi) * (
             -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
     h2zup = Iup / (4 * pi) * (
-            (x2 + 2 * xp + x) / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - (x + 2 * xp) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
+            (x2 + 2 * xp + x) / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - (x + 2 * xp) / (
+                (x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
     h2up = mix(h2xup, h2zup)
     hup = h1up + h2up
 
@@ -174,7 +199,7 @@ def magnetic_calc(x_m, z_m, f_m):
 
 
 # расчёт электрического поля для гармоники f в точке x, z
-def electric_calc(x_e, z_e, f_e):
+def electric_calc(x_e, z_e, f_e, reflect=False):
     # напряжение гармоники
     U_h = U * harm.get(f_e)[1]
 
@@ -201,9 +226,20 @@ def full_field(res_en):
 
 
 #  расчёт экрана переменного поля
-def ekran(en):
-
+def ekran(en, reflect=False):
     x, y, z = en[1]  # координаты точки
+
+    if reflect:  # расчёт для отражённого поля: где отразилось от стекла, поле имеет меньшую интенсивность
+        if (abs(y) < bor[3] and z > floor + height) or \
+                (z > sbor[2] and z < sbor[3] and abs(y) > .5 * width):
+            for f in en[0].keys():
+                en[0][f][0][0] *= k_glass
+                en[0][f][1][0] *= k_glass
+                en[0][f][0][1] *= k_glass
+                en[0][f][1][1] *= k_glass
+                en[0][f][0][2] *= k_glass
+                en[0][f][1][2] *= k_glass
+        return en
 
     # расстояние от текущей точки до КТ и НТ - для расчёта лобовых окон
     kppth = LineString([(x, y, z), (x, xp_kp, h_kp)])
@@ -228,7 +264,7 @@ def ekran(en):
     # сталь: электрическое поле полностью отражается, магнитное полностью затухает
     # стекло: и электрическое, и магнитное домножаются на d_glass по формуле:
     # Эпрел = Эпад*d = (ExH)*d = E*d x H*d
-    if (abs(y) <= 0.5*width) and (z >= floor) and (z <= floor+height):
+    if (abs(y) <= 0.5 * width) and (z >= gr_floor) and (z <= floor + height):
         # внутри кабины
         if kp_pass:
             # поле КП через стекло
@@ -249,8 +285,8 @@ def ekran(en):
             # если ни через одно стекло не проходит, значит тут сталь, т.е. поле близко нулю
             # принимаем поле от всех проводов равным 1 в этих точках для удобства отображения на графике
             for f in en[0].keys():
-                en[0][f][0] = [1, 1, 1]
-                en[0][f][1] = [1, 1, 1]
+                en[0][f][0] = [0,0,0]
+                en[0][f][1] = [0,0,0]
 
     return en
 
@@ -259,7 +295,7 @@ def ekran(en):
 
 # сохранение картинки в файл
 def show(name):
-    mng = plt.get_current_fig_manager()  # захват изображения 
+    mng = plt.get_current_fig_manager()  # захват изображения
     # mng.window.state('zoomed')  # вывод изображения на весь экран если граф.оболочка это поддерживает
     plt.savefig(f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_{name}.png")
     # сохранение картинки в файл дата_время_название.png в папку со скриптом
@@ -276,13 +312,13 @@ def fr_kab_lines(star=False):
     plt.vlines(bor[3], bor[4], bor[5], colors=cl_, linestyles=ln_)
     plt.vlines(0, bor[4], bor[5], colors=cl_, linestyles=ln_)
     # дворники
-    plt.plot(np.array([bor[2]+.1, bor[2]+0.6]),
-             np.array([bor[4]+.1, bor[5]+.1]), c=cl_, linestyle=ln_)
-    plt.plot(np.array([bor[3]-.1, bor[3]-0.6]),
-             np.array([bor[4]+.1, bor[5]+.1]), c=cl_, linestyle=ln_)
+    plt.plot(np.array([bor[2] + .1, bor[2] + 0.6]),
+             np.array([bor[4] + .1, bor[5] + .1]), c=cl_, linestyle=ln_)
+    plt.plot(np.array([bor[3] - .1, bor[3] - 0.6]),
+             np.array([bor[4] + .1, bor[5] + .1]), c=cl_, linestyle=ln_)
 
     if star:
-        cl_ = 'red'  # полосы и зезда
+        cl_ = 'red'  # полосы и звезда
         plt.hlines(bor[4] - .3, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=3)
         plt.hlines(floor + .3, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=3)
         plt.hlines(1.4, -0.5 * width, 0.5 * width, colors=cl_, linestyles='solid', lw=4)
@@ -295,22 +331,22 @@ def fr_kab_lines(star=False):
             plt.hlines(height + floor + .3 + i * .08, .4, .7, colors=cl_, linestyles='solid')
         h = height + floor + .3 + 6 * .08
         plt.plot(np.array([-.8, -.8, .8, .8, -.8]),
-                 np.array([h, h_kp-.1, h_kp-.1, h, h]),
+                 np.array([h, h_kp - .1, h_kp - .1, h, h]),
                  c=cl_, linestyle=ln_)
 
     cl_ = 'forestgreen'  # очертания кабины
     plt.hlines(height + floor, -0.5 * width, 0.5 * width, colors=cl_, linestyles=ln_)
     plt.hlines(floor + .1, -0.5 * width, 0.5 * width, colors=cl_, linestyles=ln_)
-    plt.hlines(1, -0.5 * width, 0.5 * width, colors=cl_, linestyles=ln_)
-    plt.vlines(-0.5 * width, 1, height + floor, colors=cl_, linestyles=ln_)
-    plt.vlines(0.5 * width, 1, height + floor, colors=cl_, linestyles=ln_)
+    plt.hlines(gr_floor, -0.5 * width, 0.5 * width, colors=cl_, linestyles=ln_)
+    plt.vlines(-0.5 * width, gr_floor, height + floor, colors=cl_, linestyles=ln_)
+    plt.vlines(0.5 * width, gr_floor, height + floor, colors=cl_, linestyles=ln_)
 
     # низ
-    plt.plot(np.array([-.5 * width+.1, -.5 * width + .4, .5 * width - .4, .5 * width-.1]),
-             np.array([1, .4, .4, 1]), c=cl_, linestyle=ln_)
-    delta = (width-.2)/6
-    for i in range(1,6):
-        plt.vlines(-.5*width+.1+delta*i, 1, .6, colors=cl_, linestyles=ln_)
+    plt.plot(np.array([-.5 * width + .1, -.5 * width + .4, .5 * width - .4, .5 * width - .1]),
+             np.array([gr_floor, .4, .4, gr_floor]), c=cl_, linestyle=ln_)
+    delta = (width - .2) / 6
+    for i in range(1, 6):
+        plt.vlines(-.5 * width + .1 + delta * i, gr_floor, .6, colors=cl_, linestyles=ln_)
 
     # головная фара и крыша
     bj1 = ptch.Arc((0, floor + height), width, .8, theta1=0, theta2=180, color=cl_, linestyle=ln_)
@@ -324,49 +360,49 @@ def fr_kab_lines(star=False):
 def kab_lines_front():
     d = 0.13
     cl = 'blue'
-    plt.hlines(z_chair, y_chel-d, y_chel+d, colors=cl, linestyles='--')
-    plt.hlines(z_chair, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
-    plt.hlines(z_chair-0.05, y_chel-d, y_chel+d, colors=cl, linestyles='--')
-    plt.hlines(z_chair-0.05, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair, y_chel - d, y_chel + d, colors=cl, linestyles='--')
+    plt.hlines(z_chair, -y_chel - d, -y_chel + d, colors=cl, linestyles='--')
+    plt.hlines(z_chair - 0.05, y_chel - d, y_chel + d, colors=cl, linestyles='--')
+    plt.hlines(z_chair - 0.05, -y_chel - d, -y_chel + d, colors=cl, linestyles='--')
 
-    plt.vlines(y_chel-d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
-    plt.vlines(y_chel+d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
-    plt.vlines(-y_chel-d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
-    plt.vlines(-y_chel+d, z_chair, z_chair-0.05, colors=cl, linestyles='--')
+    plt.vlines(y_chel - d, z_chair, z_chair - 0.05, colors=cl, linestyles='--')
+    plt.vlines(y_chel + d, z_chair, z_chair - 0.05, colors=cl, linestyles='--')
+    plt.vlines(-y_chel - d, z_chair, z_chair - 0.05, colors=cl, linestyles='--')
+    plt.vlines(-y_chel + d, z_chair, z_chair - 0.05, colors=cl, linestyles='--')
 
     d = 0.12
-    plt.hlines(z_chair+0.05, y_chel-d, y_chel+d, colors=cl, linestyles='--')
-    plt.hlines(z_chair+0.05+2*d, y_chel-d, y_chel+d, colors=cl, linestyles='--')
-    plt.hlines(z_chair+0.05, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
-    plt.hlines(z_chair+0.05+2*d, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(z_chair + 0.05, y_chel - d, y_chel + d, colors=cl, linestyles='--')
+    plt.hlines(z_chair + 0.05 + 2 * d, y_chel - d, y_chel + d, colors=cl, linestyles='--')
+    plt.hlines(z_chair + 0.05, -y_chel - d, -y_chel + d, colors=cl, linestyles='--')
+    plt.hlines(z_chair + 0.05 + 2 * d, -y_chel - d, -y_chel + d, colors=cl, linestyles='--')
 
-    plt.vlines(y_chel-d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
-    plt.vlines(y_chel+d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
-    plt.vlines(-y_chel-d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
-    plt.vlines(-y_chel+d, z_chair+0.05, z_chair+0.05+2*d, colors=cl, linestyles='--')
+    plt.vlines(y_chel - d, z_chair + 0.05, z_chair + 0.05 + 2 * d, colors=cl, linestyles='--')
+    plt.vlines(y_chel + d, z_chair + 0.05, z_chair + 0.05 + 2 * d, colors=cl, linestyles='--')
+    plt.vlines(-y_chel - d, z_chair + 0.05, z_chair + 0.05 + 2 * d, colors=cl, linestyles='--')
+    plt.vlines(-y_chel + d, z_chair + 0.05, z_chair + 0.05 + 2 * d, colors=cl, linestyles='--')
 
 
 # рисование линий кабины вид сверху
 def kab_lines_up():
     d = 0.12
     cl = 'blue'
-    plt.hlines(y_chel-d, x_chel-d, x_chel+d, colors=cl, linestyles='--')
-    plt.hlines(y_chel+d, x_chel-d, x_chel+d, colors=cl, linestyles='--')
-    plt.hlines(-y_chel-d, x_chel-d, x_chel+d, colors=cl, linestyles='--')
-    plt.hlines(-y_chel+d, x_chel-d, x_chel+d, colors=cl, linestyles='--')
-    plt.vlines(x_chel-d, y_chel-d, y_chel+d, colors=cl, linestyles='--')
-    plt.vlines(x_chel+d, y_chel-d, y_chel+d, colors=cl, linestyles='--')
-    plt.vlines(x_chel-d, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
-    plt.vlines(x_chel+d, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(y_chel - d, x_chel - d, x_chel + d, colors=cl, linestyles='--')
+    plt.hlines(y_chel + d, x_chel - d, x_chel + d, colors=cl, linestyles='--')
+    plt.hlines(-y_chel - d, x_chel - d, x_chel + d, colors=cl, linestyles='--')
+    plt.hlines(-y_chel + d, x_chel - d, x_chel + d, colors=cl, linestyles='--')
+    plt.vlines(x_chel - d, y_chel - d, y_chel + d, colors=cl, linestyles='--')
+    plt.vlines(x_chel + d, y_chel - d, y_chel + d, colors=cl, linestyles='--')
+    plt.vlines(x_chel - d, -y_chel - d, -y_chel + d, colors=cl, linestyles='--')
+    plt.vlines(x_chel + d, -y_chel - d, -y_chel + d, colors=cl, linestyles='--')
 
-    plt.hlines(y_chel-d, x_chel+d+0.05, x_chel+d+0.10, colors=cl, linestyles='--')
-    plt.hlines(y_chel+d, x_chel+d+0.05, x_chel+d+0.10, colors=cl, linestyles='--')
-    plt.hlines(-y_chel-d, x_chel+d+0.05, x_chel+d+0.10, colors=cl, linestyles='--')
-    plt.hlines(-y_chel+d, x_chel+d+0.05, x_chel+d+0.10, colors=cl, linestyles='--')
-    plt.vlines(x_chel+d+0.05, y_chel-d, y_chel+d, colors=cl, linestyles='--')
-    plt.vlines(x_chel+d+0.10, y_chel-d, y_chel+d, colors=cl, linestyles='--')
-    plt.vlines(x_chel+d+0.05, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
-    plt.vlines(x_chel+d+0.10, -y_chel-d, -y_chel+d, colors=cl, linestyles='--')
+    plt.hlines(y_chel - d, x_chel + d + 0.05, x_chel + d + 0.10, colors=cl, linestyles='--')
+    plt.hlines(y_chel + d, x_chel + d + 0.05, x_chel + d + 0.10, colors=cl, linestyles='--')
+    plt.hlines(-y_chel - d, x_chel + d + 0.05, x_chel + d + 0.10, colors=cl, linestyles='--')
+    plt.hlines(-y_chel + d, x_chel + d + 0.05, x_chel + d + 0.10, colors=cl, linestyles='--')
+    plt.vlines(x_chel + d + 0.05, y_chel - d, y_chel + d, colors=cl, linestyles='--')
+    plt.vlines(x_chel + d + 0.10, y_chel - d, y_chel + d, colors=cl, linestyles='--')
+    plt.vlines(x_chel + d + 0.05, -y_chel - d, -y_chel + d, colors=cl, linestyles='--')
+    plt.vlines(x_chel + d + 0.10, -y_chel - d, -y_chel + d, colors=cl, linestyles='--')
 
     plt.vlines(bor[0], bor[2], -0.22, colors='white', linestyles='--')
     plt.vlines(bor[1], bor[2], -0.22, colors='white', linestyles='--')
@@ -382,10 +418,10 @@ def kab_lines_up():
     plt.plot(np.array([0.01, bor[0]]), np.array([0, bor[2]]), c=cl, linestyle='--')
     plt.plot(np.array([0.01, bor[0]]), np.array([0, bor[3]]), c=cl, linestyle='--')
 
-    plt.hlines(0.5*width-0.01, 0, length, colors=cl, linestyles='--')
-    plt.hlines(-0.5*width+0.01, 0, length, colors=cl, linestyles='--')
-    plt.vlines(0.01, 0.5*width, -0.5*width, colors=cl, linestyles='--')
-    plt.vlines(length-0.01, 0.5*width, -0.5*width, colors=cl, linestyles='--')
+    plt.hlines(0.5 * width - 0.01, 0, length, colors=cl, linestyles='--')
+    plt.hlines(-0.5 * width + 0.01, 0, length, colors=cl, linestyles='--')
+    plt.vlines(0.01, 0.5 * width, -0.5 * width, colors=cl, linestyles='--')
+    plt.vlines(length - 0.01, 0.5 * width, -0.5 * width, colors=cl, linestyles='--')
 
 
 # построение вида сверху без электровоза
@@ -418,45 +454,45 @@ def visual_up():
     def do_graph(content, name_, x_lb='Ось x, метры', y_lb='Ось y, метры'):
         # создаём объект точек графика
         ct = plt.contour(x, y, content, alpha=0.75, colors='black', linestyles='dotted', levels=5)
-        # создаём линии уровней из объекта точек        
+        # создаём линии уровней из объекта точек
         plt.clabel(ct, fontsize=10)
         # отрисовка
         plt.imshow(content, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95)
-        # раскраска        
+        # раскраска
         plt.colorbar()
-        
+
         # рисование и подпись проводов
         for delta_y in [xp_kp, xp_up, xp_nt]:
             plt.hlines(delta_y, Xmin, Xmax, color='black', linewidth=2)
-        plt.text(0.1, xp_kp+0.05, 'КП', color='white')
-        plt.text(0.1, xp_up+0.05, 'УП', color='black')
-        plt.text(1, xp_nt-0.3, 'НТ', color='white')
+        plt.text(0.1, xp_kp + 0.05, 'КП', color='white')
+        plt.text(0.1, xp_up + 0.05, 'УП', color='black')
+        plt.text(1, xp_nt - 0.3, 'НТ', color='white')
 
         # рисование очертания поезда
         plt.hlines(0.5 * width, 0, length, colors='red', linestyles='--')
         plt.hlines(-0.5 * width, 0, length, colors='red', linestyles='--')
         plt.vlines(0, -0.5 * width, 0.5 * width, colors='red', linestyles='--')
         plt.vlines(length, -0.5 * width, 0.5 * width, colors='red', linestyles='--')
-        
-        # название осей 
+
+        # название осей
         plt.xlabel(x_lb)
         plt.ylabel(y_lb)
 
         plt.title(name_)
 
     # отрисовка по очереди магнитного, электрического и энергии
-    global gph_num
-    gph_num += 1
-    plt.figure(gph_num)
-    name = 'Контактная сеть вид сверху (без электровоза)'
-    plt.subplot(1, 3, 1)
-    do_graph(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    plt.subplot(1, 3, 2)
-    do_graph(electric, 'Электрическое', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    plt.subplot(1, 3, 3)
-    do_graph(energy, 'Энергия', x_lb='Ось x, метры', y_lb='Ось y, метры')
-    plt.suptitle(name)
-    show(name)
+    # global gph_num
+    # gph_num += 1
+    # plt.figure(gph_num)
+    # name = 'Контактная сеть вид сверху (без электровоза)'
+    # plt.subplot(1, 3, 1)
+    # do_graph(magnetic, 'Магнитное', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    # plt.subplot(1, 3, 2)
+    # do_graph(electric, 'Электрическое', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    # plt.subplot(1, 3, 3)
+    # do_graph(energy, 'Энергия', x_lb='Ось x, метры', y_lb='Ось y, метры')
+    # plt.suptitle(name)
+    # show(name)
 
     print('График построен.')
 
@@ -485,40 +521,40 @@ def visual_front():
     all_field = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
     summar = [[x_el[2] for x_el in y_list] for y_list in all_field]
 
-    # создаём новое окно
-    global gph_num
-    gph_num += 1
-    plt.figure(gph_num)
-    # задаём уровни
-    b = 10 ** (len(str(round(np.amin(summar)))) - 1)  # для правильного отображения линий
-    # создаём объект точек графика
-    ct = plt.contour(y, z, summar, alpha=0.75, colors='black', linestyles='dotted',
-                     levels=[b, 2*b, 5*b, 7*b, 10*b, 20*b, 50*b, 100*b, 200*b, 500*b, 700*b])
-    # создаём линии уровней из объекта точек     
-    plt.clabel(ct, fontsize=10)
-    # отрисовка    
-    plt.imshow(summar, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
-    # раскраска   
-    plt.colorbar()
-
-    # названия проводов
-    plt.text(xp_kp, h_kp, 'КП', color='white',  fontsize=14)
-    plt.text(xp_up, h_up, 'УП', color='white', fontsize=14)
-    plt.text(xp_nt, h_nt, 'НТ', color='white', fontsize=14)
-
-    # очертания кабины
-    fr_kab_lines(star=True)
-
-    # название осей 
-    plt.xlabel('Ось y, метры')
-    plt.ylabel('Ось z, метры')
-
-    plt.title('Контактная сеть вид спереди (без электровоза)') # подпись названия
-
-    show('вид сбоку') # вывести и сохранить
-
-    print('График построен.')
-    return every_f   # возвращаем поле для перерасчёта с локомотивом
+    # # создаём новое окно
+    # global gph_num
+    # gph_num += 1
+    # plt.figure(gph_num)
+    # # задаём уровни
+    # b = 10 ** (len(str(round(np.amin(summar)))) - 1)  # для правильного отображения линий
+    # # создаём объект точек графика
+    # ct = plt.contour(y, z, summar, alpha=0.75, colors='black', linestyles='dotted',
+    #                  levels=[b, 2 * b, 5 * b, 7 * b, 10 * b, 20 * b, 50 * b, 100 * b, 200 * b, 500 * b, 700 * b])
+    # # создаём линии уровней из объекта точек
+    # plt.clabel(ct, fontsize=10)
+    # # отрисовка
+    # plt.imshow(summar, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
+    # # раскраска
+    # plt.colorbar()
+    #
+    # # названия проводов
+    # plt.text(xp_kp, h_kp, 'КП', color='white', fontsize=14)
+    # plt.text(xp_up, h_up, 'УП', color='white', fontsize=14)
+    # plt.text(xp_nt, h_nt, 'НТ', color='white', fontsize=14)
+    #
+    # # очертания кабины
+    # fr_kab_lines(star=True)
+    #
+    # # название осей
+    # plt.xlabel('Ось y, метры')
+    # plt.ylabel('Ось z, метры')
+    #
+    # plt.title('Контактная сеть вид спереди (без электровоза)')  # подпись названия
+    #
+    # show('вид сбоку')  # вывести и сохранить
+    #
+    # print('График построен.')
+    return every_f  # возвращаем поле для перерасчёта с локомотивом
 
 
 # вывод вида сверху с электровозом
@@ -541,10 +577,10 @@ def visual_up_locomotive(ext_f):
     def graph_do(znach, name_, x_lb='', y_lb=''):
         # отрисовка
         plt.imshow(znach, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95, norm=colors.LogNorm())
-        # раскраска          
+        # раскраска
         plt.colorbar()
 
-        # название осей 
+        # название осей
         plt.xlabel(x_lb)
         plt.ylabel(y_lb)
 
@@ -555,17 +591,18 @@ def visual_up_locomotive(ext_f):
     gph_num += 1
     plt.figure(gph_num)
     name = 'Кабина вид сверху (c экраном) - энергия'
-    graph_do(energy, name, x_lb='Ось x, метры',)
+    graph_do(energy, name, x_lb='Ось x, метры', )
     kab_lines_up()
     show(name)
+    print('График построен.')
 
 
 def visual_front_locomotive(ext_f):
     print('График строится..................')
 
     # границы графика
-    Ymin, Ymax = -0.6*width, 0.6*width
-    Zmin, Zmax = floor+height+1, 0.1
+    Ymin, Ymax = -0.6 * width, 0.6 * width
+    Zmin, Zmax = floor + height + 1, 0.1
 
     # применяем экран
     ekran_ = [[ekran(y_el) for y_el in z_list if abs(y_el[1][1]) <= Ymax] for z_list in ext_f
@@ -585,14 +622,14 @@ def visual_front_locomotive(ext_f):
 
     # общая функция отрисовки графика
     def graph_do(znach, name_, x_lb='', y_lb=''):
-        # отрисовка        
-        plt.imshow(znach, extent=[Ymin, Ymax, Zmax, Zmin],  cmap=cmap,  alpha=0.95, norm=colors.LogNorm())
-        # раскраска    
+        # отрисовка
+        plt.imshow(znach, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
+        # раскраска
         plt.colorbar()
 
         # очертания кабины
         fr_kab_lines()
-        # название осей 
+        # название осей
         plt.xlabel(x_lb)
         plt.ylabel(y_lb)
 
@@ -619,10 +656,10 @@ def visual_front_locomotive(ext_f):
         i += 1
         plt.subplot(3, 3, i)
         # считаем энергию для конкретной гармоники
-        data = [[el[0][fr][0][0]*el[0][fr][1][0] +
-                 el[0][fr][0][1]*el[0][fr][1][1] +
-                 el[0][fr][0][2]*el[0][fr][1][2]
-                    for el in lst]for lst in ekran_]
+        data = [[el[0][fr][0][0] * el[0][fr][1][0] +
+                 el[0][fr][0][1] * el[0][fr][1][1] +
+                 el[0][fr][0][2] * el[0][fr][1][2]
+                 for el in lst] for lst in ekran_]
         chel_harm[fr] = data[chel_z][chel_y]
         graph_do(data, '', y_lb=str(fr))
         kab_lines_front()
@@ -630,14 +667,173 @@ def visual_front_locomotive(ext_f):
     plt.bar(range(0, len(harm.keys())), chel_harm.values())
     plt.suptitle(name)
     show(name)
+    print('График построен.')
 
     # возвращаем значения для гармоник в координатах человека чтобы вывести в блоке статистики
     return chel_harm
 
 
-# визуализируем вид спереди с учётом отражённой от экрана
-def visual_front_ekran(ext_f):
+def glass_reflect():
     pass
+
+
+def steel_reflect(y, z, x=None):
+    print(x)
+    if x:  # вид сверху
+        if abs(y) < 0.5*width and x > 0 and x < length:
+            return 0
+    else:  # вид спереди
+        if abs(y) < 0.5*width and z < height+floor and z > gr_floor:  # внутри кузова напряжённость равна 0
+            return 0
+    if z > height + floor:  # отражение вверх
+        z = 2 * (height + floor) - z
+    elif z < gr_floor:  # отражение вниз
+        z = 2 * gr_floor - z
+    if y < -0.5 * width:  # отражение влево
+        y = -width - y
+    elif y > 0.5 * width:  # отражение влево
+        y = width - y
+
+    E = 0
+    for f in harm.keys():
+        U_h = U * harm[f][1]
+
+        # электрическое поле от каждого провода
+        E += U_h * log(1 + 4 * h_kp * z / ((y - xp_kp) ** 2 + (h_kp - z) ** 2)) / (2 * z * log(2 * h_kp / d_kp))
+        E += U_h * log(1 + 4 * h_nt * z / ((y - xp_nt) ** 2 + (h_nt - z) ** 2)) / (2 * z * log(2 * h_nt / d_nt))
+        E += U_h * log(1 + 4 * h_up * z / ((y - xp_up) ** 2 + (h_up - z) ** 2)) / (2 * z * log(2 * h_up / d_up))
+
+    return E
+
+
+# визуализируем вид сверху с учётом отражённой от экрана
+def visual_up_reflect(ext_f):
+    print('График строится..................')
+
+    # чтобы не возникло проблем при вычитании поля КС и поля отражений,
+    # получаем список точек графика из уже рассчитанного ранее поля КС
+    x_ln = [el[1][0] for el in ext_f[0]]
+    y_ln = [el[0][1][1] for el in ext_f]
+    Xmin, Xmax = x_ln[0], x_ln[-1]
+    Ymin, Ymax = y_ln[0], y_ln[-1]
+
+
+
+    # посчёт отражённого поля
+    # посдчёт поля, отражённого от стекла
+    refl_glass = []
+    # подсчёт поля,. отражённого от стали
+    refl_steel = np.array([[steel_reflect(y_, z_graph, x=x_) for x_ in x_ln] for y_ in y_ln])
+    # суммирование отражённых полей
+
+    summar = refl_steel
+
+
+    global gph_num
+    gph_num += 1
+    plt.figure(gph_num)
+    name_ = 'Вид спереди (экран и отражённое поле) - Энергия'
+
+    # задаём уровни
+    # b = len(str(round(np.amax(summar))))  # ручной подсчёт порядка диапазона для отображения линий уровня
+    # levels = [i * (10 ** j) for j in range(4, b) for i in [1, 2, 5, 7]]  # ограничиваем 4-ой степенью чтобы не было
+    # артефактов на границе с экраном
+    # создаём объект точек графика
+    # ct = plt.contour(y_ln, z_ln, summar, alpha=0.75, colors='black', linestyles='dotted',
+    #                  levels=levels)
+    # создаём линии уровней из объекта точек
+    # plt.clabel(ct, fontsize=10)
+    # отрисовка
+    plt.imshow(summar, extent=[Xmin, Xmax, Ymax, Ymin], cmap='YlOrRd', alpha=0.95)
+    # norm=colors.LogNorm())
+    # раскраска
+    plt.colorbar()
+
+    # названия проводов
+    #todo
+
+    # очертания кабины
+    #todo
+
+    # название осей
+    plt.xlabel('Ось x, метры')
+    plt.ylabel('Ось y, метры')
+
+    plt.title(name_)  # подпись названия
+    show(name_)  # вывести и сохранить
+    print('График построен.')
+
+
+# визуализируем вид спереди с учётом отражённой от экрана
+def visual_front_reflect(ext_f):
+    print('График строится..................')
+
+    # чтобы не возникло проблем при вычитании поля КС и поля отражений,
+    # получаем список точек графика из уже рассчитанного ранее поля КС
+    y_ln = [el[1][1] for el in ext_f[0]]
+    z_ln = [el[0][1][2] for el in ext_f]
+    Ymin, Ymax = y_ln[0], y_ln[-1]
+    Zmin, Zmax = z_ln[0], z_ln[-1]
+
+    # посчёт отражённого поля
+    # посдчёт поля, отражённого от стекла
+    refl_glass = []
+    # подсчёт поля,. отражённого от стали
+    refl_steel = np.array([[steel_reflect(y_, z_) for y_ in y_ln] for z_ in z_ln])
+    # суммирование отражённых полей
+
+
+    # reflect_f = [[[{fr: [magnetic_calc(y_, z_, fr, reflect=True),
+    #                      electric_calc(y_, z_, fr, reflect=True)
+    #                      ] for fr in harm.keys()},
+    #                [x_chel, y_, z_]] for y_ in y_ln] for z_ in z_ln]
+    # summar_reflect = np.array([[full_field(ekran(x_el, reflect=True))[2] for x_el in y_list]
+    #                            for y_list in reflect_f])
+    #
+
+    summar = refl_steel
+
+    #
+    # # перевод в конечные значения внешнего поля с экраном
+    # summar_ext = np.array([[full_field(ekran(x_el))[2] for x_el in y_list] for y_list in ext_f])
+    # # вычитаем из поля внешнего поле отражённое
+    # summar = summar_ext - summar_reflect
+
+    global gph_num
+    gph_num += 1
+    plt.figure(gph_num)
+    name_ = 'Вид спереди (экран и отражённое поле) - Энергия'
+
+    # задаём уровни
+    b = len(str(round(np.amax(summar))))  # ручной подсчёт порядка диапазона для отображения линий уровня
+    levels = [i * (10 ** j) for j in range(4, b) for i in [1, 2, 5, 7]]  # ограничиваем 4-ой степенью чтобы не было
+    # артефактов на границе с экраном
+    # создаём объект точек графика
+    # ct = plt.contour(y_ln, z_ln, summar, alpha=0.75, colors='black', linestyles='dotted',
+    #                  levels=levels)
+    # создаём линии уровней из объекта точек
+    # plt.clabel(ct, fontsize=10)
+    # отрисовка
+    plt.imshow(summar, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95)
+    # norm=colors.LogNorm())
+    # раскраска
+    plt.colorbar()
+
+    # названия проводов
+    plt.text(xp_kp, h_kp, 'КП', color='black', fontsize=14)
+    plt.text(xp_up, h_up, 'УП', color='black', fontsize=14)
+    plt.text(xp_nt, h_nt, 'НТ', color='black', fontsize=14)
+
+    # очертания кабины
+    fr_kab_lines(star=True)
+
+    # название осей
+    plt.xlabel('Ось y, метры')
+    plt.ylabel('Ось z, метры')
+
+    plt.title(name_)  # подпись названия
+    show(name_)  # вывести и сохранить
+    print('График построен.')
 
 
 # ВЫВОД ПАРАМЕТРОВ
@@ -652,22 +848,27 @@ print(f'Высота среза: {z_graph} метров')
 # ПОСТРОЕНИЕ ГРАФИКА
 
 gph_num = 0
-print('\nБез электровоза:')
-print('\nВид сверху')
+# print('\nБез электровоза:')
+# print('\nВид сверху')
 cont_f_up = visual_up()
 
 print('\nВид спереди')
 cont_f_front = visual_front()
 
-print('\nКабина электровоза:')
-print('\nВид сверху')
-visual_up_locomotive(cont_f_up)
+# print('\nКабина электровоза:')
+# print('\nВид сверху')
+# visual_up_locomotive(cont_f_up)
+#
+# print('\nВид спереди')
+# chel_harm = visual_front_locomotive(cont_f_front)
 
-print('\nВид спереди')
-chel_harm = visual_front_locomotive(cont_f_front)
+print('\nВид сверху для отражённого поля')
+visual_up_reflect(cont_f_up)
 
-# print('\nВид спереди для отражённого поля')
-# visual_front_ekran(cont_f_front)
+print('\nВид спереди для отражённого поля')
+# visual_front_reflect(cont_f_front)
+
+plt.show()
 
 # РАСЧЁТ СТАТИСТИКИ
 

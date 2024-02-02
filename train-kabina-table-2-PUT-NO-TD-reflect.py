@@ -25,7 +25,7 @@ z_graph = z_chel  # высота среза
 
 # КОНСТАНТЫ
 
-dis = 100  # дискретизация расчётов (размерность таблицы)
+dis = 100  # дискретизация расчётов (больше - плавнее, но дольше счёт)
 harm = {50: [1, 1],
         150: [0.3061, 0.400],
         250: [0.1469, 0.115],
@@ -48,6 +48,12 @@ h_kp = 6.0  # КП
 h_nt = 7.8  # НТ
 h_up = 8.0  # УП
 
+
+xp_mid = 4.2  # расстояние между центрами путей
+xp_kp2 = 0  # m - расстояние от центра между рельсами до КП2 (если левее центра - поставить минус)
+xp_nt2 = 0  # m - расстояние от центра между рельсами до НТ2 (если левее центра - поставить минус)
+xp_up2 = 3.7  # m - расстояние от центра между рельсами до УП2
+
 # ДАННЫЕ О ЛОКОМОТИВЕ
 
 length = 1.3  # длина кабины
@@ -58,6 +64,7 @@ height = 2.6  # высота кабины
 bor = [0.2, 0.6, -1.2, 1.2, floor+1.5, floor+2.2]  # узлы окна
 # min_x, max_x, min_z, max_z
 sbor = [0.3, 1, floor+1.5, floor+2.2]  # узлы для бокового окна
+
 # формируем передние окна методом Polygon: составляем список из координат точек по x, y, z каждого угла
 frontWindleft = Polygon([(bor[0], bor[2], bor[4]),
                          (bor[1], bor[2], bor[5]),
@@ -79,6 +86,14 @@ max_kp = Point(0.5*width, sbor[2]).distance(Point(xp_kp, h_kp))
 min_up = Point(-0.5*width, sbor[3]).distance(Point(xp_up, h_up))
 max_up = Point(-0.5*width, sbor[2]).distance(Point(xp_up, h_up))
 
+min_nt2 = Point(0.5*width, sbor[3]).distance(Point(xp_nt2+xp_mid, h_nt))
+max_nt2 = Point(0.5*width, sbor[2]).distance(Point(xp_nt2+xp_mid, h_nt))
+
+min_kp2 = Point(0.5*width, sbor[3]).distance(Point(xp_kp2+xp_mid, h_kp))
+max_kp2 = Point(0.5*width, sbor[2]).distance(Point(xp_kp2+xp_mid, h_kp))
+
+min_up2 = Point(0.5*width, sbor[3]).distance(Point(xp_up2+xp_mid, h_up))
+max_up2 = Point(0.5*width, sbor[2]).distance(Point(xp_up2+xp_mid, h_up))
 
 # ЭКРАН
 # стекло - высчитываем d для подсчёта энергии преломлённой волны
@@ -122,7 +137,7 @@ def magnetic_calc(x_m, z_m, f_m):
     x = x_m - 2*xp - xp_kp
     h2xkp = Ikp / (4 * pi) * (
                 -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
-    h2zkp = Ikp / (4 * pi) * (x + 2 * xp) * (
+    h2zkp = Ikp / (4 * pi) * (x + xp) * (
                 1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
     # сумма (по т.Пифагора) векторов x и z    
     h2kp = mix(h2xkp, h2zkp)
@@ -140,7 +155,7 @@ def magnetic_calc(x_m, z_m, f_m):
     x = x_m - 2 * xp - xp_nt
     h2xnt = Int / (4 * pi) * (
             -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
-    h2znt = Int / (4 * pi) * (x + 2 * xp) * (
+    h2znt = Int / (4 * pi) * (x + xp) * (
             1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
     h2nt = mix(h2xnt, h2znt)
     hnt = h1nt + h2nt
@@ -161,23 +176,73 @@ def magnetic_calc(x_m, z_m, f_m):
             (x2 + 2 * xp + x) / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - (x + 2 * xp) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
     h2up = mix(h2xup, h2zup)
     hup = h1up + h2up
+    
+    # КП2
+    x = x_m - (xp_kp2 + xp_mid)
+    h1xkp_2 = Ikp / (4 * pi) * (
+                -z_m / ((x + xp) ** 2 + z_m**2) + (z_m - h_kp)/(x ** 2 + (h_kp - z_m)**2))
+    h1zkp_2 = Ikp / (4 * pi) * (x + xp) * (
+                1 / ((x + xp) ** 2 + z_m ** 2) - 1/(x ** 2 + (h_kp - z_m) ** 2))
+    h1kp_2 = mix(h1xkp_2, h1zkp_2)
+    x = x_m - 2*xp - (xp_kp2 + xp_mid)
+    h2xkp_2 = Ikp / (4 * pi) * (
+                -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_kp) / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
+    h2zkp_2 = Ikp / (4 * pi) * (x + xp) * (
+                1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2*xp) ** 2 + (h_kp - z_m) ** 2))
+    h2kp_2 = mix(h2xkp_2, h2zkp_2)
+    hkp_scd = h1kp_2 + h2kp_2
 
+    # НТ2
+    x = x_m - (xp_nt2 + xp_mid)
+    h1xnt_2 = Int / (4 * pi) * (
+            -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / (x ** 2 + (h_nt - z_m) ** 2))
+    h1znt_2 = Int / (4 * pi) * (x + xp) * (
+            1 / ((x + xp) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_nt - z_m) ** 2))
+    h1nt_2 = mix(h1xnt_2, h1znt_2)
+    x = x_m - 2 * xp - (xp_nt2 + xp_mid)
+    h2xnt_2 = Int / (4 * pi) * (
+            -z_m / ((x + xp) ** 2 + z_m ** 2) + (z_m - h_nt) / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
+    h2znt_2 = Int / (4 * pi) * (x + xp) * (
+            1 / ((x + xp) ** 2 + z_m ** 2) - 1 / ((x + 2 * xp) ** 2 + (h_nt - z_m) ** 2))
+    h2nt_2 = mix(h2xnt_2, h2znt_2)
+    hnt_scd = h1nt_2 + h2nt_2
+
+    # УП2
+    x = x_m - (xp_up2 + xp_mid)
+    x2 = -xp + xp_up2
+    h1xup_2 = Iup / (4 * pi) * (
+            -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / (x ** 2 + (h_up - z_m) ** 2))
+    h1zup_2 = Iup / (4 * pi) * (x2 + 2 * xp + x) * (
+            1 / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - 1 / (x ** 2 + (h_up - z_m) ** 2))
+    h1up_2 = mix(h1xup_2, h1zup_2)
+    x = x_m - (xp_up2 + xp_mid) - 2 * xp
+    x2 = -xp + xp_up2
+    h2xup_2 = Iup / (4 * pi) * (
+            -z_m / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) + (z_m - h_up) / ((x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
+    h2zup_2 = Iup / (4 * pi) * (
+            (x2 + 2 * xp + x) / ((x2 + 2 * xp + x) ** 2 + z_m ** 2) - (x + 2 * xp) / (
+                (x + 2 * xp) ** 2 + (h_up - z_m) ** 2))
+    h2up_2 = mix(h2xup_2, h2zup_2)
+    hup_sec = h1up_2 + h2up_2
+    
     # результат выполнения этой функции - значения магнитных полей КП, НТ, УП для выбранной гармоники
-    return [hkp, hnt, hup]
+    return [hkp, hnt, hup, hkp_scd, hnt_scd, hup_sec]
 
 
 # расчёт электрического поля для гармоники f в точке x, z
 def electric_calc(x_e, z_e, f_e):
-    # напряжение гармоники
+
     U_h = U * harm.get(f_e)[1]
 
-    # электрическое поле от каждого провода
     ekp = U_h * log(1 + 4 * h_nt * z_e / ((x_e - xp_nt) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt))
     ent = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
     eup = U_h * log(1 + 4 * h_up * z_e / ((x_e - xp_up) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
 
-    # результат - список значений полей от каждого провода
-    return [ekp, ent, eup]
+    ekp_scd = U_h * log(1 + 4 * h_nt * z_e / ((x_e - xp_nt2 - xp_mid) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt))
+    ent_scd = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp2 - xp_mid) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
+    eup_scd = U_h * log(1 + 4 * h_up * z_e / ((x_e - xp_up2 - xp_mid) ** 2 + (h_up - z_e) ** 2)) / (2 * z_e * log(2 * h_up / d_up))
+
+    return [ekp, ent, eup, ekp_scd, ent_scd, eup_scd]
 
 
 # суммироввание всех полей для каждой точки:
@@ -186,10 +251,9 @@ def full_field(res_en):
     for en in res_en[0].values():
         sum_h += sum(en[0])  # магнитная составляющая
         sum_e += sum(en[1])  # электрическая составляющая
-        # для расчёта энергии, перемножаем значения магнитного и электрического поля для каждого провода,
-        # затем складываем полученные значения
-        sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2]
-    # возвращаем значения магнитной, электрической и энергетической составляющей
+        # энергия
+        sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2] + \
+                 en[0][3] * en[1][3] + en[0][4] * en[1][4] + en[0][5] * en[1][5]
     return [sum_h, sum_e, sum_g]
 
 
@@ -217,6 +281,15 @@ def ekran(en):
     up_dist = Point(y, z).distance(Point(xp_up, h_up))
     up_pass = (up_dist >= min_up) and (up_dist <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
 
+    kp_sec_d = Point(y, z).distance(Point(xp_kp2+xp_mid, h_kp))
+    kp_sec_p = (kp_sec_d >= min_kp2) and (kp_sec_d <= max_kp2) and (x >= sbor[0]) and (x <= sbor[1])
+
+    nt_sec_d = Point(y, z).distance(Point(xp_nt2+xp_mid, h_nt))
+    nt_sec_p = (nt_sec_d >= min_nt2) and (nt_sec_d <= max_nt2) and (x >= sbor[0]) and (x <= sbor[1])
+
+    up_sec_d = Point(y, z).distance(Point(xp_up2+xp_mid, h_up))
+    up_sec_p = (up_sec_d >= min_up2) and (up_sec_d <= max_up2) and (x >= sbor[0]) and (x <= sbor[1])
+
     # для каждой точки внутри кабины проверяем, проходит ли для неё какое-либо поле через стекло
     # сталь: электрическое поле полностью отражается, магнитное полностью затухает
     # стекло: и электрическое, и магнитное домножаются на d_glass по формуле:
@@ -238,13 +311,27 @@ def ekran(en):
             for f in en[0].keys():
                 en[0][f][0][2] *= d_glass
                 en[0][f][1][2] *= d_glass
-        if not (kp_pass or nt_pass or up_pass):
+        if kp_sec_p:
+            # поле КП второго пути через стекло
+            for f in en[0].keys():
+                en[0][f][0][3] *= d_glass
+                en[0][f][1][3] *= d_glass
+        if nt_sec_p:
+            # поле НТ второго пути через стекло
+            for f in en[0].keys():
+                en[0][f][0][4] *= d_glass
+                en[0][f][1][4] *= d_glass
+        if up_sec_p:
+            # поле УП второго пути через стекло
+            for f in en[0].keys():
+                en[0][f][0][5] *= d_glass
+                en[0][f][1][5] *= d_glass
+        if not (kp_pass or nt_pass or up_pass or kp_sec_p or nt_sec_p or up_sec_p):
             # если ни через одно стекло не проходит, значит тут сталь, т.е. поле близко нулю
             # принимаем поле от всех проводов равным 1 в этих точках для удобства отображения на графике
             for f in en[0].keys():
-                en[0][f][0] = [1, 1, 1]
-                en[0][f][1] = [1, 1, 1]
-
+                en[0][f][0] = [1, 1, 1, 1, 1, 1]
+                en[0][f][1] = [1, 1, 1, 1, 1, 1]
     return en
 
 
@@ -299,7 +386,10 @@ def visual_front_locomotive(ext_f):
                 if f:
                     E = dt[0][f][0][0]*dt[0][f][1][0] +\
                         dt[0][f][0][1]*dt[0][f][1][1] +\
-                        dt[0][f][0][2]*dt[0][f][1][2]
+                        dt[0][f][0][2]*dt[0][f][1][2] + \
+                        dt[0][f][0][3] * dt[0][f][1][3] + \
+                        dt[0][f][0][4] * dt[0][f][1][4] + \
+                        dt[0][f][0][5] * dt[0][f][1][5]
                     print(f'{E:.3f}'.ljust(ln), end='', file=rf)
                 else:
                     print(f'{dt:.3f}'.ljust(ln), end='', file=rf)

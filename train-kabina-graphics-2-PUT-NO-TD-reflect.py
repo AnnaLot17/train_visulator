@@ -124,7 +124,7 @@ def mix(h_x, h_zz):
 
 
 # магнитное поле гармоники f для заданной координаты x и z
-def magnetic_calc(x_m, z_m, f_m):
+def magnetic_calc(x_m, z_m, f_m, reflect=False):
     # общая сила тока гармоники
     I_h = I * harm.get(f_m)[0]
 
@@ -132,6 +132,17 @@ def magnetic_calc(x_m, z_m, f_m):
     Ikp = 0.41 * I_h
     Int = 0.20 * I_h
     Iup = 0.39 * I_h
+
+    # если отражение идёт от стекла, магнитная составляющая отражается - корректируем координаты
+    if reflect:
+        if abs(x_m) < bor[3] and z_m > floor + height:  # лобовые
+            z_m = 2 * (height + floor) - z_m
+        elif z_m > sbor[2] and z_m < sbor[3] and x_m < -.5*width:  # левое боковое
+            x_m = -width - x_m
+        elif z_m > sbor[2] and z_m < sbor[3] and x_m < .5 * width:  # правое боковое
+            x_m = width - x_m
+        else:
+            return [0, 0, 0, 0, 0, 0]
 
     # расчёт x и z составляющих магнитного поля от правого рельса для КП
     x = x_m - xp_kp
@@ -778,8 +789,7 @@ def visual_front_ekran(ext_f):
     Zmin, Zmax = z_ln[0], z_ln[-1]
 
     # посчёт отражённого поля
-    reflect_f = [[[{fr: [[1, 1, 1, 1, 1, 1],  # т.к. магнитное поле не отражается,
-                         # его отражённый компонент будет домножать энергию на 1
+    reflect_f = [[[{fr: [magnetic_calc(y_, z_graph, fr, reflect=True),
                          electric_calc(y_, z_, fr, reflect=True)
                          ] for fr in harm.keys()},
                    [x_chel, y_, z_]] for y_ in y_ln] for z_ in z_ln]
@@ -792,7 +802,7 @@ def visual_front_ekran(ext_f):
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
-    name_ = 'Вид спереди - Энергия'
+    name_ = 'Вид спереди (экран и отражённое поле) - Энергия'
 
     # задаём уровни
     b = len(str(round(np.amax(summar))))  # ручной подсчёт порядка диапазона для отображения линий уровня

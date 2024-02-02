@@ -16,6 +16,7 @@ U_ted = 1950  # напряжение в ТЭД, В
 x_chel = 0.9  # положение человека по оси х
 y_chel = 0.9  # положение человека по оси y
 floor = 2  # расстояние от земли до дна кабины
+gr_floor = 1  # высота самого низа электровоза
 z_chair = floor + 1.2  # сидушка стула
 z_chel = floor + 1.5  # где находится человек по оси z
 a = 1.75  # высота человека метры
@@ -116,7 +117,7 @@ def mix(h_x, h_zz):
 
 
 # магнитное поле гармоники f для заданной координаты x и z
-def magnetic_calc(x_m, z_m, f_m):
+def magnetic_calc(x_m, z_m, f_m, reflect=False):
     # общая сила тока гармоники
     I_h = I * harm.get(f_m)[0]
 
@@ -124,6 +125,17 @@ def magnetic_calc(x_m, z_m, f_m):
     Ikp = 0.41 * I_h
     Int = 0.20 * I_h
     Iup = 0.39 * I_h
+
+    # если отражение идёт от стекла, магнитная составляющая отражается - корректируем координаты
+    if reflect:
+        if abs(x_m) < bor[3] and z_m > floor + height:  # лобовые
+            z_m = 2 * (height + floor) - z_m
+        elif z_m > sbor[2] and z_m < sbor[3] and x_m < -.5*width:  # левое боковое
+            x_m = -width - x_m
+        elif z_m > sbor[2] and z_m < sbor[3] and x_m < .5 * width:  # правое боковое
+            x_m = width - x_m
+        else:
+            return [0, 0, 0, 0, 0, 0]
 
     # расчёт x и z составляющих магнитного поля от правого рельса для КП
     x = x_m - xp_kp
@@ -230,9 +242,33 @@ def magnetic_calc(x_m, z_m, f_m):
 
 
 # расчёт электрического поля для гармоники f в точке x, z
-def electric_calc(x_e, z_e, f_e):
+def electric_calc(x_e, z_e, f_e, reflect=False):
 
     U_h = U * harm.get(f_e)[1]
+
+    if reflect:  # если считаем отражённое электрическое поле, корректируем координаты для подсчёта поля мнимого провода
+        if abs(x_e) < 0.5 * width and z_e > height + floor:  # отражение вверх
+            z_e = 2 * (height + floor) - z_e
+        elif abs(x_e) < 0.5 * width and z_e < gr_floor:  # отражение вниз
+            z_e = 2 * gr_floor - z_e
+        elif x_e < -.5 * width and z_e < height + floor and z_e > gr_floor:  # отражение влево
+            x_e = -width - x_e
+        elif x_e > .5 * width and z_e < height + floor and z_e > gr_floor:  # отражение вправо
+            x_e = width - x_e
+        elif x_e > .5 * width and z_e > height + floor:  # верхний правый угол
+            z_e = 2 * (height + floor) - z_e
+            x_e = width - x_e
+        elif x_e > .5 * width and z_e < gr_floor:  # нижний правый угол
+            z_e = 2 * gr_floor - z_e
+            x_e = width - x_e
+        elif x_e < -.5 * width and z_e > height + floor:  # верхний левый угол
+            z_e = 2 * (height + floor) - z_e
+            x_e = -width - x_e
+        elif x_e < -.5 * width and z_e < gr_floor:  # нижний левый угол
+            z_e = 2 * gr_floor - z_e
+            x_e = -width - x_e
+        else:
+            return [0, 0, 0, 0, 0, 0]
 
     ekp = U_h * log(1 + 4 * h_nt * z_e / ((x_e - xp_nt) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt))
     ent = U_h * log(1 + 4 * h_kp * z_e / ((x_e - xp_kp) ** 2 + (h_kp - z_e) ** 2)) / (2 * z_e * log(2 * h_kp / d_kp))
@@ -258,9 +294,17 @@ def full_field(res_en):
 
 
 #  расчёт экрана переменного поля
-def ekran(en):
+def ekran(en, reflect=False):
 
     x, y, z = en[1]  # координаты точки
+
+    if reflect:  # расчёт для отражённого поля: где отразилось от стекла, поле имеет меньшую интенсивность
+        if (abs(y) < bor[3] and z > floor + height) or \
+                (z > sbor[2] and z < sbor[3] and abs(y) > .5 * width):
+            for f in en[0].keys():
+                en[0][f][0][0] *= k_glass
+                en[0][f][1][0] *= k_glass
+        return en
 
     # расстояние от текущей точки до КТ и НТ - для расчёта лобовых окон
     kppth = LineString([(x, y, z), (x, xp_kp, h_kp)])
@@ -367,12 +411,20 @@ def visual_front_locomotive(ext_f):
               if z_list[0][1][2] <= Zmin and z_list[0][1][2] >= Zmax]
 
     # суммирование для получения конечного значения в каждой точке
-    summar = [[full_field(y_el) for y_el in z_list] for z_list in ekran_]
-    energy = np.array([[y_el[2] for y_el in z_list] for z_list in summar])
+    summar = np.array([[full_field(y_el)[2] for y_el in z_list] for z_list in ekran_])
 
     # разбиение по точкам
     y_ln = np.linspace(Ymin, Ymax, len(ekran_[0]))
     z_ln = np.linspace(Zmin, Zmax, len(ekran_))
+
+    # задел на случай если надо будет в таблицу выводить отражённое поле
+    # reflect = [[[{fr: [magnetic_calc(y_, z_graph, fr, reflect=True),
+    #                      electric_calc(y_, z_, fr, reflect=True)
+    #                      ] for fr in harm.keys()},
+    #                [x_chel, y_, z_]] for y_ in y_ln] for z_ in z_ln]
+    # summar_reflect = np.array([[full_field(ekran(x_el, reflect=True))[2] for x_el in y_list]
+    #                            for y_list in reflect])
+    # summar = summar - summar_reflect
 
     # составление таблицы
     def table_out(znach, f=0, t=0, ln=10):
@@ -405,7 +457,7 @@ def visual_front_locomotive(ext_f):
     # вывод значений энергии в таблицу
     print('ЭНЕРГИЯ вид спереди кабина\n', file=rf)
     print('Общее\n', file=rf)
-    table_out(energy, ln=12)
+    table_out(summar, ln=12)
     print('Гармоники\n', file=rf)
     for fr in harm.keys():
         print(f'{fr} Гц\n', file=rf)

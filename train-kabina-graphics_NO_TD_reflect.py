@@ -7,17 +7,6 @@ import matplotlib.colors as colors
 import matplotlib.patches as ptch
 from shapely.geometry import Polygon, LineString, Point
 
-
-
-# todo
-# стекло вид спереди
-# стекло вид сверху
-# экран стекла - сразу?
-# суммирование
-# вернуть всё как было
-# переделать двупутный
-# убрать из таблицы не позорится
-
 # цветоваяя схема графиков
 plt.style.use('seaborn-white')
 cmap = 'YlOrRd'
@@ -26,9 +15,6 @@ cmap = 'YlOrRd'
 
 I = 300  # cуммарная сила тока, А
 U = 30000  # cуммарное напряжение, В
-
-I_ted = 880  # сила тока в ТЭД, А
-U_ted = 1950  # напряжение в ТЭД, В
 
 # СТАТИСТИЧЕСКИЕ ДАННЫЕ
 x_chel = 0.9  # положение человека по оси х
@@ -43,8 +29,7 @@ ti = 1  # длительность пребывания работника на 
 z_graph = z_chel  # высота среза
 
 # КОНСТАНТЫ
-# todo
-dis = 40  # дискретизация графиков (меньше - менее точно, но быстрее считает; больше - точнее, но дольше расчёт)
+dis = 100  # дискретизация графиков (меньше - менее точно, но быстрее считает; больше - точнее, но дольше расчёт)
 harm = {50: [1, 1],
         150: [0.3061, 0.400],
         250: [0.1469, 0.115],
@@ -53,8 +38,6 @@ harm = {50: [1, 1],
         550: [0.0282, 0.036],
         650: [0.0196, 0.032],
         750: [0.0147, 0.022]}
-# todo
-comp = (1 / len(harm.keys()) / 3) ** .5  # компенсаторное значение для тех точек, где энергия боизка к 0
 
 # ДАННЫЕ О КОНТАКТНОЙ СЕТИ
 
@@ -78,7 +61,7 @@ height = 2.6  # высота кабины
 # min_x, max_x, min_y, max_y, min_z, max_z
 bor = [0.2, 0.6, -1.2, 1.2, floor + 1.5, floor + 2.2]  # узлы окна
 # min_x, max_x, min_z, max_z
-sbor = [0.3, 1, floor + 1.5, floor + 2.2]  # узлы для бокового окна
+sbor = [0.3, 1, floor + 1, floor + 2.2]  # узлы для бокового окна
 
 # формируем передние окна методом Polygon: составляем список из координат точек по x, y, z каждого угла
 frontWindleft = Polygon([(bor[0], bor[2], bor[4]),
@@ -235,14 +218,20 @@ def ekran(en):
     kp_dist = Point(y, z).distance(Point(xp_kp, h_kp))  # направление от точки до провода
     # есть ли на пути этого направления окно
     # учитываем значение для лобового стекла логическим сложением
-    kp_pass |= (kp_dist >= min_kp) and (kp_dist <= max_kp) and (x >= sbor[0]) and (x <= sbor[1])
+    kp_pass |= (kp_dist >= min_kp) and (kp_dist <= max_kp) and (x >= sbor[0]) and (x <= sbor[1]) \
+        and (z >= sbor[2]) and (z <= sbor[3])
+    kp_pass |= (x >= sbor[0]) and (x <= sbor[1]) and (z >= sbor[2]) and (z <= sbor[3])
 
     nt_dist = Point(y, z).distance(Point(xp_nt, h_nt))
-    nt_pass |= (nt_dist >= min_nt) and (nt_dist <= max_nt) and (x >= sbor[0]) and (x <= sbor[1])
+    nt_pass |= (nt_dist >= min_nt) and (nt_dist <= max_nt) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+    nt_pass |= (x >= sbor[0]) and (x <= sbor[1]) and (z >= sbor[2]) and (z <= sbor[3])
 
     up_dist = Point(y, z).distance(Point(xp_up, h_up))
-    up_pass |= (up_dist >= min_up_l) and (up_dist <= max_up_l) and (x >= sbor[0]) and (x <= sbor[1])
-    up_pass |= (up_dist >= min_up_r) and (up_dist <= max_up_r) and (x >= sbor[0]) and (x <= sbor[1])
+    up_pass |= (up_dist >= min_up_l) and (up_dist <= max_up_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+    up_pass |= (up_dist >= min_up_r) and (up_dist <= max_up_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
 
     # сталь: электрическое поле полностью отражается, магнитное полностью затухает
     # стекло: и электрическое, и магнитное домножаются на d_glass по формуле:
@@ -502,6 +491,7 @@ def visual_front():
     all_field = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
     summar = [[x_el[2] for x_el in y_list] for y_list in all_field]
 
+
     # создаём новое окно
     global gph_num
     gph_num += 1
@@ -509,6 +499,7 @@ def visual_front():
     # задаём уровни
     b = 10 ** (len(str(round(np.amin(summar)))) - 1)  # для правильного отображения линий
     # создаём объект точек графика
+    summar[0][0] = 100  # несущественной для построения точке даём минимальное выводное зеначение чтобы график был соразмерен по цвету отражённому графику
     ct = plt.contour(y, z, summar, alpha=0.75, colors='black', linestyles='dotted',
                      levels=[b, 2 * b, 5 * b, 7 * b, 10 * b, 20 * b, 50 * b, 100 * b, 200 * b, 500 * b, 700 * b])
     # создаём линии уровней из объекта точек
@@ -658,7 +649,6 @@ def glass_reflect(x, y, z):
     # для полей, отражённых окнами, строим "мнимые" провода, генерирующие зеркальные отражения их полей
 
     hkp, ekp, hnt, ent, hup, eup = 0, 0, 0, 0, 0, 0
-
 
     def energy(I_p, x_p, h_p, d_p):
         e = 0
@@ -880,8 +870,6 @@ visual_up_reflect(cont_f_up)
 
 print('\nВид спереди для отражённого поля')
 visual_front_reflect(cont_f_front)
-
-plt.show()
 
 # РАСЧЁТ СТАТИСТИКИ
 

@@ -58,7 +58,8 @@ height = 2.6  # высота кабины
 # min_x, max_x, min_y, max_y, min_z, max_z
 bor = [0.2, 0.6, -1.2, 1.2, floor+1.5, floor+2.2]  # узлы окна
 # min_x, max_x, min_z, max_z
-sbor = [0.3, 1, floor+1.5, floor+2.2]  # узлы для бокового окна
+sbor = [0.3, 1, floor + 1, floor + 2.2]  # узлы для бокового окна
+
 # формируем передние окна методом Polygon: составляем список из координат точек по x, y, z каждого угла
 frontWindleft = Polygon([(bor[0], bor[2], bor[4]),
                          (bor[1], bor[2], bor[5]),
@@ -77,9 +78,10 @@ max_nt = Point(0.5*width, sbor[2]).distance(Point(xp_nt, h_nt)) # луч вер�
 min_kp = Point(0.5*width, sbor[3]).distance(Point(xp_kp, h_kp)) # далее аналогично для остальных проводов
 max_kp = Point(0.5*width, sbor[2]).distance(Point(xp_kp, h_kp))
 
-min_up = Point(-0.5*width, sbor[3]).distance(Point(xp_up, h_up))
-max_up = Point(-0.5*width, sbor[2]).distance(Point(xp_up, h_up))
-
+min_up_l = Point(-0.5 * width, sbor[3]).distance(Point(xp_up, h_up))
+max_up_l = Point(-0.5 * width, sbor[2]).distance(Point(xp_up, h_up))
+min_up_r = Point(0.5 * width, sbor[3]).distance(Point(xp_up, h_up))
+max_up_r = Point(0.5 * width, sbor[2]).distance(Point(xp_up, h_up))
 
 # ЭКРАН
 # стекло - высчитываем d для подсчёта энергии преломлённой волны
@@ -102,7 +104,7 @@ def mix(h_x, h_zz):
 
 
 # магнитное поле гармоники f для заданной координаты x и z
-def magnetic_calc(x_m, z_m, f_m, reflect=False):
+def magnetic_calc(x_m, z_m, f_m):
     # общая сила тока гармоники
     I_h = I * harm.get(f_m)[0]
 
@@ -110,16 +112,6 @@ def magnetic_calc(x_m, z_m, f_m, reflect=False):
     Ikp = 0.41 * I_h
     Int = 0.20 * I_h
     Iup = 0.39 * I_h
-
-    if reflect:
-        if abs(x_m) < bor[3] and z_m > floor + height:  # лобовые
-            z_m = 2 * (height + floor) - z_m
-        elif z_m > sbor[2] and z_m < sbor[3] and x_m < -.5*width:  # левое боковое
-            x_m = -width - x_m
-        elif z_m > sbor[2] and z_m < sbor[3] and x_m < .5 * width:  # правое боковое
-            x_m = width - x_m
-        else:
-            return [0, 0, 0]
 
     # расчёт x и z составляющих магнитного поля от правого рельса для КП
     x = x_m - xp_kp
@@ -178,33 +170,9 @@ def magnetic_calc(x_m, z_m, f_m, reflect=False):
 
 
 # расчёт электрического поля для гармоники f в точке x, z
-def electric_calc(x_e, z_e, f_e, reflect=False):
+def electric_calc(x_e, z_e, f_e):
     # напряжение гармоники
     U_h = U * harm.get(f_e)[1]
-
-    if reflect:  # если считаем отражённое электрическое поле, корректируем координаты для подсчёта поля мнимого провода
-        if abs(x_e) < 0.5 * width and z_e > height + floor:  # отражение вверх
-            z_e = 2 * (height + floor) - z_e
-        elif abs(x_e) < 0.5 * width and z_e < gr_floor:  # отражение вниз
-            z_e = 2 * gr_floor - z_e
-        elif x_e < -.5 * width and z_e < height + floor and z_e > gr_floor:  # отражение влево
-            x_e = -width - x_e
-        elif x_e > .5 * width and z_e < height + floor and z_e > gr_floor:  # отражение вправо
-            x_e = width - x_e
-        elif x_e > .5 * width and z_e > height + floor:  # верхний правый угол
-            z_e = 2 * (height + floor) - z_e
-            x_e = width - x_e
-        elif x_e > .5 * width and z_e < gr_floor:  # нижний правый угол
-            z_e = 2 * gr_floor - z_e
-            x_e = width - x_e
-        elif x_e < -.5 * width and z_e > height + floor:  # верхний левый угол
-            z_e = 2 * (height + floor) - z_e
-            x_e = -width - x_e
-        elif x_e < -.5 * width and z_e < gr_floor:  # нижний левый угол
-            z_e = 2 * gr_floor - z_e
-            x_e = -width - x_e
-        else:
-            return [0, 0, 0]
 
     # электрическое поле от каждого провода
     ekp = U_h * log(1 + 4 * h_nt * z_e / ((x_e - xp_nt) ** 2 + (h_nt - z_e) ** 2)) / (2 * z_e * log(2 * h_nt / d_nt))
@@ -229,40 +197,37 @@ def full_field(res_en):
 
 
 #  расчёт экрана переменного поля
-def ekran(en, reflect=False):
+def ekran(en):
 
     x, y, z = en[1]  # координаты точки
 
-    if reflect:  # расчёт для отражённого поля: где отразилось от стекла, поле имеет меньшую интенсивность
-        if (abs(y) < bor[3] and z > floor + height) or \
-                (z > sbor[2] and z < sbor[3] and abs(y) > .5 * width):
-            for f in en[0].keys():
-                en[0][f][0][0] *= k_glass
-                en[0][f][1][0] *= k_glass
-                en[0][f][0][1] *= k_glass
-                en[0][f][1][1] *= k_glass
-                en[0][f][0][2] *= k_glass
-                en[0][f][1][2] *= k_glass
-        return en
-
-    # расстояние от текущей точки до КТ и НТ - для расчёта лобовых окон
+    # направление от текущей точки до проводов - для расчёта лобовых окон
     kppth = LineString([(x, y, z), (x, xp_kp, h_kp)])
     ntpth = LineString([(x, y, z), (x, xp_nt, h_nt)])
-    # проверяем, попадает ли лобовое окно по направлению от текущей точки до КТ, НТ
+    uppth = LineString([(x, y, z), (x, xp_up, h_up)])
+    # проверяем, попадает ли лобовое окно по направлению от текущей точки до проводов
     kp_pass = kppth.intersects(frontWindleft) or kppth.intersects(frontWindright)
     nt_pass = ntpth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
+    up_pass = uppth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
 
     # для каждого провода проверяем, попадает ли текущая точка в тень от бокового окна или нет
     kp_dist = Point(y, z).distance(Point(xp_kp, h_kp))  # направление от точки до провода
     # есть ли на пути этого направления окно
-    # для КП и НТ - учитываем значение для лобового стекла логическим сложением
-    kp_pass |= (kp_dist >= min_kp) and (kp_dist <= max_kp) and (x >= sbor[0]) and (x <= sbor[1])
+    # учитываем значение для лобового стекла логическим сложением
+    kp_pass |= (kp_dist >= min_kp) and (kp_dist <= max_kp) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+    kp_pass |= (x >= sbor[0]) and (x <= sbor[1]) and (z >= sbor[2]) and (z <= sbor[3])
 
     nt_dist = Point(y, z).distance(Point(xp_nt, h_nt))
-    nt_pass |= (nt_dist >= min_nt) and (nt_dist <= max_nt) and (x >= sbor[0]) and (x <= sbor[1])
+    nt_pass |= (nt_dist >= min_nt) and (nt_dist <= max_nt) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+    nt_pass |= (x >= sbor[0]) and (x <= sbor[1]) and (z >= sbor[2]) and (z <= sbor[3])
 
     up_dist = Point(y, z).distance(Point(xp_up, h_up))
-    up_pass = (up_dist >= min_up) and (up_dist <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
+    up_pass |= (up_dist >= min_up_l) and (up_dist <= max_up_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+    up_pass |= (up_dist >= min_up_r) and (up_dist <= max_up_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
 
     # для каждой точки внутри кабины проверяем, проходит ли для неё какое-либо поле через стекло
     # сталь: электрическое поле полностью отражается, магнитное полностью затухает
@@ -333,15 +298,6 @@ def visual_front_locomotive(ext_f):
     # разбиение по точкам
     y_ln = np.linspace(Ymin, Ymax, len(ekran_[0]))
     z_ln = np.linspace(Zmin, Zmax, len(ekran_))
-
-    # задел на случай если надо будет в таблицу выводить отражённое поле
-    # reflect = [[[{fr: [magnetic_calc(y_, z_graph, fr, reflect=True),
-    #                      electric_calc(y_, z_, fr, reflect=True)
-    #                      ] for fr in harm.keys()},
-    #                [x_chel, y_, z_]] for y_ in y_ln] for z_ in z_ln]
-    # summar_reflect = np.array([[full_field(ekran(x_el, reflect=True))[2] for x_el in y_list]
-    #                            for y_list in reflect])
-    # summar = summar - summar_reflect
 
     # составление таблицы
     def table_out(znach, f=0, t=0, ln=10):

@@ -49,6 +49,7 @@ xp_ep = -2.7   # m - расстояние от центра между рель�
 d_kp = 12.81 / 1000  # mm
 d_nt = 12.5 / 1000  # mm
 d_up = 17.5 / 1000  # mm
+d_ep = 17.5 / 1000  # mm
 h_kp = 6.0  # КП
 h_nt = 7.8  # НТ
 h_up = 8.0  # УП
@@ -223,7 +224,7 @@ def full_field(res_en):
         sum_e += sum(en[1])  # электрическая составляющая
         # для расчёта энергии, перемножаем значения магнитного и электрического поля для каждого провода,
         # затем складываем полученные значения
-        sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2]  + en[0][3] * en[1][3]
+        sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2] - en[0][3] * en[1][3]
     # возвращаем значения магнитной, электрической и энергетической составляющей
     return [sum_h, sum_e, sum_g]
 
@@ -236,10 +237,13 @@ def ekran(en):
     kppth = LineString([(x, y, z), (x, xp_kp, h_kp)])
     ntpth = LineString([(x, y, z), (x, xp_nt, h_nt)])
     uppth = LineString([(x, y, z), (x, xp_up, h_up)])
+    eppth = LineString([(x, y, z), (x, xp_ep, h_ep)])
     # проверяем, попадает ли лобовое окно по направлению от текущей точки до проводов
     kp_pass = kppth.intersects(frontWindleft) or kppth.intersects(frontWindright)
     nt_pass = ntpth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
     up_pass = uppth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
+    ep_pass = eppth.intersects(frontWindleft) or eppth.intersects(frontWindright)
+
 
     # для каждого провода проверяем, попадает ли текущая точка в тень от бокового окна или нет
     kp_dist = Point(y, z).distance(Point(xp_kp, h_kp))  # направление от точки до провода
@@ -259,6 +263,13 @@ def ekran(en):
                and (z >= sbor[2]) and (z <= sbor[3])
     up_pass |= (up_dist >= min_up_r) and (up_dist <= max_up_r) and (x >= sbor[0]) and (x <= sbor[1]) \
                and (z >= sbor[2]) and (z <= sbor[3])
+
+    ep_dist = Point(y, z).distance(Point(xp_ep, h_ep))
+    ep_pass |= (ep_dist >= min_ep_l) and (ep_dist <= max_ep_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+    ep_pass |= (ep_dist >= min_ep_r) and (ep_dist <= max_ep_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+
 
     # сталь: электрическое поле полностью отражается, магнитное полностью затухает
     # стекло: и электрическое, и магнитное домножаются на d_glass по формуле:
@@ -280,11 +291,16 @@ def ekran(en):
             for f in en[0].keys():
                 en[0][f][0][2] *= d_glass
                 en[0][f][1][2] *= d_glass
+        if ep_pass:
+            # поле ЕП через стекло
+            for f in en[0].keys():
+                en[0][f][0][3] *= d_glass
+                en[0][f][1][3] *= d_glass
         if not (kp_pass or nt_pass or up_pass):
             # если ни через одно стекло не проходит, значит тут сталь, т.е. поле равно нулю
             for f in en[0].keys():
-                en[0][f][0] = [0, 0, 0]
-                en[0][f][1] = [0, 0, 0]
+                en[0][f][0] = [0, 0, 0, 0]
+                en[0][f][1] = [0, 0, 0, 0]
     return en
 
 
@@ -459,11 +475,12 @@ def visual_up():
         plt.colorbar()
 
         # рисование и подпись проводов
-        for delta_y in [xp_kp, xp_up, xp_nt]:
+        for delta_y in [xp_kp, xp_up, xp_nt, xp_ep]:
             plt.hlines(delta_y, Xmin, Xmax, color='black', linewidth=2)
         plt.text(-.5, xp_kp - 0.1, 'КП', color='black')
         plt.text(-.5, xp_up - 0.1, 'УП', color='black')
         plt.text(-.5, xp_nt + 0.4, 'НТ', color='black')
+        plt.text(-.5, xp_ep + 0.1, 'ЕП', color='black')
 
         # рисование очертания поезда
         plt.hlines(0.5 * width, 0, length, colors='red', linestyles='--')
@@ -504,7 +521,7 @@ def visual_front():
     Ymax = 1 * max(xp, width) * 1.15
     Ymin = xp_up * 1.2
     Zmax = 0.1
-    Zmin = max(h_kp, h_nt, h_up) * 1.1
+    Zmin = max(h_kp, h_nt, h_up, h_ep) * 1.1
 
     # разбиение на точки
     y = np.linspace(Ymin, Ymax, dis)
@@ -540,6 +557,7 @@ def visual_front():
     plt.text(xp_kp, h_kp, 'КП', color='white', fontsize=14)
     plt.text(xp_up, h_up, 'УП', color='white', fontsize=14)
     plt.text(xp_nt, h_nt, 'НТ', color='white', fontsize=14)
+    plt.text(xp_ep, h_ep, 'ЕП', color='black', fontsize=14)
 
     # очертания кабины
     fr_kab_lines(star=True)
@@ -657,7 +675,8 @@ def visual_front_locomotive(ext_f):
         # считаем энергию для конкретной гармоники
         data = [[el[0][fr][0][0] * el[0][fr][1][0] +
                  el[0][fr][0][1] * el[0][fr][1][1] +
-                 el[0][fr][0][2] * el[0][fr][1][2]
+                 el[0][fr][0][2] * el[0][fr][1][2] -
+                 el[0][fr][0][3] * el[0][fr][1][3]
                  for el in lst] for lst in ekran_]
         chel_harm[fr] = data[chel_z][chel_y]
         graph_do(data, '', y_lb=str(fr))
@@ -675,7 +694,7 @@ def visual_front_locomotive(ext_f):
 def glass_reflect(x, y, z):
     # для полей, отражённых окнами, строим "мнимые" провода, генерирующие зеркальные отражения их полей
 
-    hkp, ekp, hnt, ent, hup, eup = 0, 0, 0, 0, 0, 0
+    hkp, ekp, hnt, ent, hup, eup, hep, eep = 0, 0, 0, 0, 0, 0, 0, 0
 
     def energy(I_p, x_p, h_p, d_p):
         e = 0
@@ -700,6 +719,7 @@ def glass_reflect(x, y, z):
     h_kp_s = (sbor[3]+sbor[2]) - h_kp
     h_nt_s = (sbor[3]+sbor[2]) - h_nt
     h_up_s = (sbor[3]+sbor[2]) - h_up
+    h_ep_s = (sbor[3]+sbor[2]) - h_ep
 
     kp_dist = Point(y, z).distance(Point(xp_kp, h_kp_s))  # расстояние от точки до провода
     kp_pass = (kp_dist >= min_kp) and (kp_dist <= max_kp) \
@@ -712,14 +732,20 @@ def glass_reflect(x, y, z):
     up_pass = (up_dist >= min_up_l) and (up_dist <= max_up_l) and (x >= sbor[0]) and (x <= sbor[1]) and abs(y) > .5*width
     up_pass |= (up_dist >= min_up_r) and (up_dist <= max_up_r) and (x >= sbor[0]) and (x <= sbor[1]) and abs(y) > .5*width
 
+    ep_dist = Point(y, z).distance(Point(xp_ep, h_ep_s))
+    ep_pass = (ep_dist >= min_ep_l) and (ep_dist <= max_ep_l) and (x >= sbor[0]) and (x <= sbor[1]) and abs(y) > .5*width
+    ep_pass |= (ep_dist >= min_ep_r) and (ep_dist <= max_ep_r) and (x >= sbor[0]) and (x <= sbor[1]) and abs(y) > .5*width
+
     if kp_pass:
         hkp, ekp = energy(0.41*I, xp_kp, h_kp_s, d_kp)
     if nt_pass:
         hnt, ent = energy(0.20*I, xp_nt, h_nt_s, d_nt)
     if up_pass:
         hup, eup = energy(0.39*I, xp_up, h_up_s, d_up)
+    if ep_pass:
+        hep, eep = energy(0.4*I, xp_ep, h_ep_s, d_ep)
 
-    return (hkp * ekp + hnt * ent + hup * eup) * k_glass
+    return (hkp * ekp + hnt * ent + hup * eup - hep * eep) * k_glass
 
 
 def steel_reflect(y, z, x=None):
@@ -746,6 +772,7 @@ def steel_reflect(y, z, x=None):
         E += U_h * log(1 + 4 * h_kp * z / ((y - xp_kp) ** 2 + (h_kp - z) ** 2)) / (2 * z * log(2 * h_kp / d_kp))
         E += U_h * log(1 + 4 * h_nt * z / ((y - xp_nt) ** 2 + (h_nt - z) ** 2)) / (2 * z * log(2 * h_nt / d_nt))
         E += U_h * log(1 + 4 * h_up * z / ((y - xp_up) ** 2 + (h_up - z) ** 2)) / (2 * z * log(2 * h_up / d_up))
+        E -= U_h * log(1 + 4 * h_ep * z / ((y - xp_ep) ** 2 + (h_ep - z) ** 2)) / (2 * z * log(2 * h_up / d_ep))
 
     return E
 
@@ -793,6 +820,7 @@ def visual_up_reflect(ext_f):
     plt.text(-.5, xp_kp - 0.1, 'КП', color='black')
     plt.text(-.5, xp_up - 0.1, 'УП', color='black')
     plt.text(-.5, xp_nt + 0.4, 'НТ', color='black')
+    plt.text(-.5, xp_ep + 0.1, 'ЕП', color='black')
 
     # очертания кабины
     kab_lines_up()
@@ -853,6 +881,7 @@ def visual_front_reflect(ext_f):
     plt.text(xp_kp, h_kp, 'КП', color='black', fontsize=14)
     plt.text(xp_up, h_up, 'УП', color='black', fontsize=14)
     plt.text(xp_nt, h_nt, 'НТ', color='black', fontsize=14)
+    plt.text(xp_ep, h_ep, 'ЕП', color='black', fontsize=14)
 
     # очертания кабины
     fr_kab_lines(star=True)
@@ -871,6 +900,7 @@ print('\nПараметры сети')
 print(f'Высота КП: {h_kp} м')
 print(f'Высота НЧ: {h_nt} м')
 print(f'Высота УП: {h_up} м')
+print(f'Высота ЕП: {h_up} м')
 print(f'Напряжение: {U} Вольт')
 print(f'Суммарный ток: {I} Ампер')
 print(f'Высота среза: {z_graph} метров')

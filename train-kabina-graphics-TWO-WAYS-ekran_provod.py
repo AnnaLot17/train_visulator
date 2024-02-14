@@ -277,7 +277,7 @@ def magnetic_calc(x_m, z_m, f_m):
     h2up_2 = mix(h2xup_2, h2zup_2)
     hup_sec = h1up_2 + h2up_2
 
-    # УП2
+    # эП2
     x = x_m - (xp_ep2 + xp_mid)
     x2 = -xp + xp_ep2
     h1xep_2 = Iep / (4 * pi) * (

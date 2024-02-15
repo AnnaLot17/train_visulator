@@ -318,13 +318,13 @@ def electric_calc(x_e, z_e, f_e):
 def full_field(res_en):
     sum_h, sum_e, sum_g = 0, 0, 0
     for en in res_en[0].values():
-        sum_h += sum(en[0])  # магнитная составляющая
-        sum_e += sum(en[1])  # электрическая составляющая
+        sum_h += abs(sum(en[0]))  # магнитная составляющая
+        sum_e += abs(sum(en[1]))  # электрическая составляющая
         # энергия
-        sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2] - \
-                 en[0][3] * en[1][3] +\
-                 en[0][4] * en[1][4] + en[0][5] * en[1][5] + en[0][6] * en[1][6] -\
-                 en[0][7] * en[1][7]
+        sum_g += abs(en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2] - \
+                     en[0][3] * en[1][3] +\
+                     en[0][4] * en[1][4] + en[0][5] * en[1][5] + en[0][6] * en[1][6] -\
+                     en[0][7] * en[1][7])
     return [sum_h, sum_e, sum_g]
 
 
@@ -683,14 +683,13 @@ def visual_front():
     def graph_do(znach, name_):
         # задаём уровни
         b = len(str(round(np.amax(znach))))  # высчитываем диапазон графика для правильного отображения линий уровня
-        levels = [i * (10 ** j) for j in range(0, b) for i in [1, 2, 5, 7]]
+        levels = [i * (10 ** j) for j in range(4, b-2) for i in [1, 2, 5, 7]]
         # создаём объект точек графика
         ct = plt.contour(y, z, znach, alpha=0.75, colors='black', linestyles='dotted',
                          levels=levels)
         # создаём линии уровней из объекта точек
         plt.clabel(ct, fontsize=10)
         # отрисовка
-        summar[0][0] = 2000  # несущественной для построения точке даём минимальное выводное зеначение чтобы график был соразмерен по цвету отражённому графику
         plt.imshow(znach, extent=[Ymin, Ymax, Zmax, Zmin], cmap=cmap, alpha=0.95, norm=colors.LogNorm())
         # раскраска
         plt.colorbar()
@@ -1041,12 +1040,12 @@ def visual_front_reflect(ext_f):
     # подсчёт поля,. отражённого от стали
     refl_steel = np.array([[steel_reflect(y_, z_) for y_ in y_ln] for z_ in z_ln])
     # суммирование отражённых полей
-    summar_reflect = refl_steel + refl_glass
+    summar_reflect = np.absolute(refl_steel + refl_glass)
 
     # перевод в конечные значения внешнего поля с экраном
     summar_ext = np.array([[full_field(x_el)[2] for x_el in y_list] for y_list in ext_f])
     # вычитаем из поля внешнего поле отражённое
-    summar = summar_ext - summar_reflect
+    summar = np.absolute(summar_ext - summar_reflect)
 
     global gph_num
     gph_num += 1
@@ -1055,7 +1054,7 @@ def visual_front_reflect(ext_f):
 
     # задаём уровни
     b = len(str(round(np.amax(summar))))  # ручной подсчёт порядка диапазона для отображения линий уровня
-    levels = [i * (10 ** j) for j in range(4, b) for i in [1, 2, 5, 7]]  # ограничиваем 4-ой степенью чтобы не было
+    levels = [i * (10 ** j) for j in range(4, b-2) for i in [1, 2, 5, 7]]  # ограничиваем 4-ой степенью чтобы не было
     # артефактов на границе с экраном
     # создаём объект точек графика
     ct = plt.contour(y_ln, z_ln, summar, alpha=0.75, colors='black', linestyles='dotted',

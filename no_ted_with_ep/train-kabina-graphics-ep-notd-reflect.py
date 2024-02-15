@@ -220,11 +220,11 @@ def electric_calc(x_e, z_e, f_e, reflect=False):
 def full_field(res_en):
     sum_h, sum_e, sum_g = 0, 0, 0
     for en in res_en[0].values():
-        sum_h += sum(en[0])  # магнитная составляющая
-        sum_e += sum(en[1])  # электрическая составляющая
+        sum_h += abs(sum(en[0]))  # магнитная составляющая
+        sum_e += abs(sum(en[1]))  # электрическая составляющая
         # для расчёта энергии, перемножаем значения магнитного и электрического поля для каждого провода,
         # затем складываем полученные значения
-        sum_g += en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2] - en[0][3] * en[1][3]
+        sum_g += abs(en[0][0] * en[1][0] + en[0][1] * en[1][1] + en[0][2] * en[1][2] - en[0][3] * en[1][3])
     # возвращаем значения магнитной, электрической и энергетической составляющей
     return [sum_h, sum_e, sum_g]
 
@@ -243,7 +243,6 @@ def ekran(en):
     nt_pass = ntpth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
     up_pass = uppth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
     ep_pass = eppth.intersects(frontWindleft) or eppth.intersects(frontWindright)
-
 
     # для каждого провода проверяем, попадает ли текущая точка в тень от бокового окна или нет
     kp_dist = Point(y, z).distance(Point(xp_kp, h_kp))  # направление от точки до провода
@@ -269,7 +268,6 @@ def ekran(en):
                and (z >= sbor[2]) and (z <= sbor[3])
     ep_pass |= (ep_dist >= min_ep_r) and (ep_dist <= max_ep_r) and (x >= sbor[0]) and (x <= sbor[1]) \
                and (z >= sbor[2]) and (z <= sbor[3])
-
 
     # сталь: электрическое поле полностью отражается, магнитное полностью затухает
     # стекло: и электрическое, и магнитное домножаются на d_glass по формуле:
@@ -535,17 +533,16 @@ def visual_front():
     all_field = [[full_field(x_el) for x_el in y_list] for y_list in every_f]
     summar = [[x_el[2] for x_el in y_list] for y_list in all_field]
 
-
     # создаём новое окно
     global gph_num
     gph_num += 1
     plt.figure(gph_num)
     # задаём уровни
-    b = 10 ** (len(str(round(np.amin(summar)))) - 1)  # для правильного отображения линий
+    b = len(str(round(np.amax(summar))))  # высчитываем диапазон графика для правильного отображения линий уровня
+    levels = [i * (10 ** j) for j in range(3, b-2) for i in [1, 2, 5, 7]]
     # создаём объект точек графика
-    summar[0][0] = 100  # несущественной для построения точке даём минимальное выводное зеначение чтобы график был соразмерен по цвету отражённому графику
     ct = plt.contour(y, z, summar, alpha=0.75, colors='black', linestyles='dotted',
-                     levels=[b, 2 * b, 5 * b, 7 * b, 10 * b, 20 * b, 50 * b, 100 * b, 200 * b, 500 * b, 700 * b])
+                     levels=levels)
     # создаём линии уровней из объекта точек
     plt.clabel(ct, fontsize=10)
     # отрисовка
@@ -856,7 +853,7 @@ def visual_front_reflect(ext_f):
     # перевод в конечные значения внешнего поля с экраном
     summar_ext = np.array([[full_field(ekran(x_el))[2] for x_el in y_list] for y_list in ext_f])
     # вычитаем из поля внешнего поле отражённое
-    summar = summar_ext - summar_reflect
+    summar = np.absolute(summar_ext - summar_reflect)
 
     global gph_num
     gph_num += 1
@@ -865,7 +862,7 @@ def visual_front_reflect(ext_f):
 
     # задаём уровни
     b = len(str(round(np.amax(summar))))  # ручной подсчёт порядка диапазона для отображения линий уровня
-    levels = [i * (10 ** j) for j in range(4, b) for i in [1, 2, 5, 7]]  # ограничиваем 4-ой степенью чтобы не было
+    levels = [i * (10 ** j) for j in range(4, b-1) for i in [1, 2, 5, 7]]  # ограничиваем 4-ой степенью чтобы не было
     # артефактов на границе с экраном
     # создаём объект точек графика
     ct = plt.contour(y_ln, z_ln, summar, alpha=0.75, colors='black', linestyles='dotted',

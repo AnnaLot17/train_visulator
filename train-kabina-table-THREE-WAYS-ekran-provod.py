@@ -23,10 +23,10 @@ U2 = 30000  # cуммарное напряжение, В
 # третий путь
 I3 = 300  # cуммарная сила тока, А
 U3 = 30000  # cуммарное напряжение, В
-
+'''
 I_ted = 880  # сила тока в ТЭД, А
 U_ted = 1950  # напряжение в ТЭД, В
-
+'''
 # СТАТИСТИЧЕСКИЕ ДАННЫЕ
 x_chel = 0.9  # положение человека по оси х
 y_chel = 0.9  # положение человека по оси y
@@ -186,13 +186,14 @@ for fr in harm.keys():
     B = (lam / r_kab) ** (1 / 3)
     ke_per[fr] = 0.024 * A * B * Ce * 0.001
 
-
+'''
 # ОБОРУДОВАНИЕ
 x_td1_sr = 0.9  # тяговый двигатель
 dy_td = 0.8
 r_td = 0.604
 l_td = 0.66
 z_td = 1
+'''
 
 # РАСЧЁТЫ
 
@@ -633,7 +634,7 @@ def visual_front():
 
     return every_f
 
-
+'''
 def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
     ds = 8
 
@@ -669,7 +670,7 @@ def ted_field_calc(x_arr, y_arr, I_g, U_g, n, type_='UP'):
         return [in_point(x_, y_, z_graph) for y_ in y_arr for x_ in x_arr]
     else:
         return [in_point(x_chel, y_, z_) for z_ in y_arr for y_ in x_arr]
-        
+'''        
 
 def visual_front_locomotive(ext_f):
     Ymin, Ymax = -0.6*width, 0.6*width
@@ -786,7 +787,7 @@ print(f'Ток ТЭД: {I_ted} Ампер')
 print('\nРасчёт поля\n')
 cont_f_front = visual_front()
 visual_front_locomotive(cont_f_front)
-visual_front_post()
+#visual_front_post()
 
 # РАСЧЁТ СТАТИСТИКИ
 
@@ -805,9 +806,11 @@ Dco = ekran_per * ti * S * p
 Dpo = Dco / b
 print('Удельная суточная доза поглощённой энергии: %.4f' % Dpo)
 
+'''
 chel_f_post = ted_field_calc([y_chel], [z_chel], I_ted, U_ted, 5, type_='FRONT')[0][0]
 ekran_post_ = chel_f_post[0] / kh * chel_f_post[1] / ke_post
 print('\nПостоянное поле с экраном %.4f' % ekran_post_)
 Dco = ekran_post_ * ti * S * p
 Dpo = Dco / b
 print('Удельная суточная доза поглощённой энергии: %.8f' % Dpo)
+'''

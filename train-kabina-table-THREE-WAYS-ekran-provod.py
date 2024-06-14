@@ -725,7 +725,7 @@ def visual_front_locomotive(ext_f):
     table_out(energy, ln=12)
     rf.close()
 
-
+'''
 def visual_front_post():
     dis_y, dis_z = 60, 60
     y_ln = np.linspace(-0.6*width, 0.6*width, dis_y, endpoint=True)
@@ -761,7 +761,7 @@ def visual_front_post():
     print('ЭНЕРГИЯ\n', file=rf)
     table_out(energy, ln=14)
     rf.close()
-
+'''
 
 # ВЫВОД ПАРАМЕТРОВ
 

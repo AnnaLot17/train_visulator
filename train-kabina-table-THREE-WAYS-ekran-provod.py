@@ -24,8 +24,8 @@ U2 = 30000  # cуммарное напряжение, В
 I3 = 300  # cуммарная сила тока, А
 U3 = 30000  # cуммарное напряжение, В
 
-#I_ted = 880  # сила тока в ТЭД, А
-#U_ted = 1950  # напряжение в ТЭД, В
+I_ted = 880  # сила тока в ТЭД, А
+U_ted = 1950  # напряжение в ТЭД, В
 
 # СТАТИСТИЧЕСКИЕ ДАННЫЕ
 x_chel = 0.9  # положение человека по оси х
@@ -124,7 +124,7 @@ max_ep_l = Point(-0.5*width, sbor[2]).distance(Point(xp_ep, h_ep))
 min_ep_r = Point(0.5*width, sbor[3]).distance(Point(xp_ep, h_ep))
 max_ep_r = Point(0.5*width, sbor[2]).distance(Point(xp_ep, h_ep))
 
-min_nt2_l = Point(-0.5 * width, sbor[3]).distance(Point(xp_nt2 + xp_mid, h_nt))
+min_nt2_l = Point(-0.5 * width, sbor[3]).distance(Point(xp_nt2 + xp_mid12, h_nt))
 max_nt2_l = Point(-0.5 * width, sbor[2]).distance(Point(xp_nt2 + xp_mid12, h_nt))
 min_nt2_r = Point(0.5 * width, sbor[3]).distance(Point(xp_nt2 + xp_mid12, h_nt))
 max_nt2_r = Point(0.5 * width, sbor[2]).distance(Point(xp_nt2 + xp_mid12, h_nt))
@@ -143,7 +143,6 @@ min_ep2_l = Point(-0.5*width, sbor[3]).distance(Point(xp_ep2+xp_mid12, h_ep))
 max_ep2_l = Point(-0.5*width, sbor[2]).distance(Point(xp_ep2+xp_mid12, h_ep))
 min_ep2_r = Point(0.5*width, sbor[3]).distance(Point(xp_ep2+xp_mid12, h_ep))
 max_ep2_r = Point(0.5*width, sbor[2]).distance(Point(xp_ep2+xp_mid12, h_ep))
-
 
 min_nt3_l = Point(-0.5 * width, sbor[3]).distance(Point(xp_nt3 + xp_mid13, h_nt))
 max_nt3_l = Point(-0.5 * width, sbor[2]).distance(Point(xp_nt3 + xp_mid13, h_nt))
@@ -200,6 +199,7 @@ z_td = 1
 # теорема Пифагора
 def mix(h_x, h_zz):
     return (h_x ** 2 + h_zz ** 2) ** 0.5
+
 
 # расчёт магнитного поля
 def magnetic_calc(x_m, z_m, f_m):
@@ -552,49 +552,6 @@ def ekran(en):
     ep_thd_pass |= (ep_thd_dist >= min_ep3_r) and (ep_thd_dist <= max_ep3_r) and (x >= sbor[0]) and (x <= sbor[1]) \
                     and (z >= sbor[2]) and (z <= sbor[3])
 
-    x, y, z = en[1]
-    kppth = LineString([(x, y, z), (x, xp_kp, h_kp)])
-    ntpth = LineString([(x, y, z), (x, xp_nt, h_nt)])
-
-    kp_pass = kppth.intersects(frontWindleft) or kppth.intersects(frontWindright)
-    nt_pass = ntpth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
-
-    kp_dist = Point(y, z).distance(Point(xp_kp, h_kp))
-    kp_pass |= (kp_dist >= min_kp) and (kp_dist <= max_kp) and (x >= sbor[0]) and (x <= sbor[1])
-
-    nt_dist = Point(y, z).distance(Point(xp_nt, h_nt))
-    nt_pass |= (nt_dist >= min_nt) and (nt_dist <= max_nt) and (x >= sbor[0]) and (x <= sbor[1])
-
-    up_dist = Point(y, z).distance(Point(xp_up, h_up))
-    up_pass = (up_dist >= min_up) and (up_dist <= max_up) and (x >= sbor[0]) and (x <= sbor[1])
-
-    ep_dist = Point(y, z).distance(Point(xp_ep, h_ep))
-    ep_pass = (ep_dist >= min_ep) and (ep_dist <= max_ep) and (x >= sbor[0]) and (x <= sbor[1])
-
-    kp_sec_d = Point(y, z).distance(Point(xp_kp2+xp_mid12, h_kp))
-    kp_sec_p = (kp_sec_d >= min_kp2) and (kp_sec_d <= max_kp2) and (x >= sbor[0]) and (x <= sbor[1])
-
-    nt_sec_d = Point(y, z).distance(Point(xp_nt2+xp_mid12, h_nt))
-    nt_sec_p = (nt_sec_d >= min_nt2) and (nt_sec_d <= max_nt2) and (x >= sbor[0]) and (x <= sbor[1])
-
-    up_sec_d = Point(y, z).distance(Point(xp_up2+xp_mid12, h_up))
-    up_sec_p = (up_sec_d >= min_up2) and (up_sec_d <= max_up2) and (x >= sbor[0]) and (x <= sbor[1])
-
-    ep_sec_d = Point(y, z).distance(Point(xp_ep2 + xp_mid12, h_ep))
-    ep_sec_p = (ep_sec_d >= min_ep2) and (ep_sec_d <= max_ep2) and (x >= sbor[0]) and (x <= sbor[1])
-    
-    kp_thd_d = Point(y, z).distance(Point(xp_kp3+xp_mid13, h_kp))
-    kp_thd_p = (kp_thd_d >= min_kp3) and (kp_thd_d <= max_kp3) and (x >= sbor[0]) and (x <= sbor[1])
-
-    nt_thd_d = Point(y, z).distance(Point(xp_nt3+xp_mid13, h_nt))
-    nt_thd_p = (nt_thd_d >= min_nt3) and (nt_thd_d <= max_nt3) and (x >= sbor[0]) and (x <= sbor[1])
-
-    up_thd_d = Point(y, z).distance(Point(xp_up3+xp_mid13, h_up))
-    up_thd_p = (up_thd_d >= min_up3) and (up_thd_d <= max_up3) and (x >= sbor[0]) and (x <= sbor[1])
-
-    ep_thd_d = Point(y, z).distance(Point(xp_ep3 + xp_mid13, h_ep))
-    ep_thd_p = (ep_thd_d >= min_ep3) and (ep_thd_d <= max_ep3) and (x >= sbor[0]) and (x <= sbor[1])
-
     if (abs(y) <= 0.5*width) and (z >= floor) and (z <= floor+height) and (x < length):
         if not kp_pass:
             for f in en[0].keys():
@@ -609,28 +566,28 @@ def ekran(en):
                 en[0][f][0][2] /= kh
                 en[0][f][1][2] /= ke_per[f]
         
-        if not kp_sec_p:
+        if not kp_sec_pass:
             for f in en[0].keys():
                 en[0][f][0][3] /= kh
                 en[0][f][1][3] /= ke_per[fr]
-        if not nt_sec_p:
+        if not nt_sec_pass:
             for f in en[0].keys():
                 en[0][f][0][4] /= kh
                 en[0][f][1][4] /= ke_per[fr]
-        if not up_sec_p:
+        if not up_sec_pass:
             for f in en[0].keys():
                 en[0][f][0][5] /= kh
                 en[0][f][1][5] /= ke_per[fr]
 
-        if not kp_thd_p:
+        if not kp_thd_pass:
             for f in en[0].keys():
                 en[0][f][0][6] /= kh
                 en[0][f][1][6] /= ke_per[fr]
-        if not nt_thd_p:
+        if not nt_thd_pass:
             for f in en[0].keys():
                 en[0][f][0][7] /= kh
                 en[0][f][1][7] /= ke_per[fr]
-        if not up_thd_p:
+        if not up_thd_pass:
             for f in en[0].keys():
                 en[0][f][0][8] /= kh
                 en[0][f][1][8] /= ke_per[fr]
@@ -639,11 +596,11 @@ def ekran(en):
             for f in en[0].keys():
                 en[0][f][0][9] /= kh
                 en[0][f][1][9] /= ke_per[fr]
-        if not ep_sec_p:
+        if not ep_sec_pass:
             for f in en[0].keys():
                 en[0][f][0][10] /= kh
                 en[0][f][1][10] /= ke_per[fr]
-        if not ep_thd_p:
+        if not ep_thd_pass:
             for f in en[0].keys():
                 en[0][f][0][11] /= kh
                 en[0][f][1][11] /= ke_per[fr]        
@@ -661,8 +618,9 @@ def ekran_post(ext_en):
 
     return [[ext_en[0][0] / k_h, ext_en[0][1] / k_e], ext_en[1]]
 
+
 def visual_front():
-    Ymax = xp_up2 * 1.2 + xp_mid
+    Ymax = xp_up2 * 1.2 + xp_mid12
     Ymin = xp_up * 1.2
     Zmax = 0.1
     Zmin = max(h_kp, h_nt, h_up) * 1.1

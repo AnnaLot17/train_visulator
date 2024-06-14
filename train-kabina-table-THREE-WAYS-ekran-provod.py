@@ -114,35 +114,56 @@ max_nt = Point(0.5*width, sbor[2]).distance(Point(xp_nt, h_nt))
 min_kp = Point(0.5*width, sbor[3]).distance(Point(xp_kp, h_kp))
 max_kp = Point(0.5*width, sbor[2]).distance(Point(xp_kp, h_kp))
 
-min_up = Point(-0.5*width, sbor[3]).distance(Point(xp_up, h_up))
-max_up = Point(-0.5*width, sbor[2]).distance(Point(xp_up, h_up))
+min_up_l = Point(-0.5 * width, sbor[3]).distance(Point(xp_up, h_up))
+max_up_l = Point(-0.5 * width, sbor[2]).distance(Point(xp_up, h_up))
+min_up_r = Point(0.5 * width, sbor[3]).distance(Point(xp_up, h_up))
+max_up_r = Point(0.5 * width, sbor[2]).distance(Point(xp_up, h_up))
 
-min_ep = Point(-0.5*width, sbor[3]).distance(Point(xp_ep, h_ep))
-max_ep = Point(-0.5*width, sbor[2]).distance(Point(xp_ep, h_ep))
+min_ep_l = Point(-0.5*width, sbor[3]).distance(Point(xp_ep, h_ep))
+max_ep_l = Point(-0.5*width, sbor[2]).distance(Point(xp_ep, h_ep))
+min_ep_r = Point(0.5*width, sbor[3]).distance(Point(xp_ep, h_ep))
+max_ep_r = Point(0.5*width, sbor[2]).distance(Point(xp_ep, h_ep))
 
-min_nt2 = Point(0.5*width, sbor[3]).distance(Point(xp_nt2+xp_mid12, h_nt))
-max_nt2 = Point(0.5*width, sbor[2]).distance(Point(xp_nt2+xp_mid12, h_nt))
+min_nt2_l = Point(-0.5 * width, sbor[3]).distance(Point(xp_nt2 + xp_mid, h_nt))
+max_nt2_l = Point(-0.5 * width, sbor[2]).distance(Point(xp_nt2 + xp_mid12, h_nt))
+min_nt2_r = Point(0.5 * width, sbor[3]).distance(Point(xp_nt2 + xp_mid12, h_nt))
+max_nt2_r = Point(0.5 * width, sbor[2]).distance(Point(xp_nt2 + xp_mid12, h_nt))
 
-min_kp2 = Point(0.5*width, sbor[3]).distance(Point(xp_kp2+xp_mid12, h_kp))
-max_kp2 = Point(0.5*width, sbor[2]).distance(Point(xp_kp2+xp_mid12, h_kp))
+min_kp2_l = Point(-0.5 * width, sbor[3]).distance(Point(xp_kp2 + xp_mid12, h_kp))
+max_kp2_l = Point(-0.5 * width, sbor[2]).distance(Point(xp_kp2 + xp_mid12, h_kp))
+min_kp2_r = Point(0.5 * width, sbor[3]).distance(Point(xp_kp2 + xp_mid12, h_kp))
+max_kp2_r = Point(0.5 * width, sbor[2]).distance(Point(xp_kp2 + xp_mid12, h_kp))
 
-min_up2 = Point(-0.5*width, sbor[3]).distance(Point(xp_up2+xp_mid12, h_up))
-max_up2 = Point(-0.5*width, sbor[2]).distance(Point(xp_up2+xp_mid12, h_up))
+min_up2_l = Point(-0.5 * width, sbor[3]).distance(Point(xp_up2 + xp_mid12, h_up))
+max_up2_l = Point(-0.5 * width, sbor[2]).distance(Point(xp_up2 + xp_mid12, h_up))
+min_up2_r = Point(0.5 * width, sbor[3]).distance(Point(xp_up2 + xp_mid12, h_up))
+max_up2_r = Point(0.5 * width, sbor[2]).distance(Point(xp_up2 + xp_mid12, h_up))
 
-min_ep2 = Point(0.5*width, sbor[3]).distance(Point(xp_ep2+xp_mid12, h_ep))
-max_ep2 = Point(0.5*width, sbor[2]).distance(Point(xp_ep2+xp_mid12, h_ep))
+min_ep2_l = Point(-0.5*width, sbor[3]).distance(Point(xp_ep2+xp_mid12, h_ep))
+max_ep2_l = Point(-0.5*width, sbor[2]).distance(Point(xp_ep2+xp_mid12, h_ep))
+min_ep2_r = Point(0.5*width, sbor[3]).distance(Point(xp_ep2+xp_mid12, h_ep))
+max_ep2_r = Point(0.5*width, sbor[2]).distance(Point(xp_ep2+xp_mid12, h_ep))
 
-min_nt3 = Point(0.5*width, sbor[3]).distance(Point(xp_nt2+xp_mid13, h_nt))
-max_nt3 = Point(0.5*width, sbor[2]).distance(Point(xp_nt2+xp_mid13, h_nt))
 
-min_kp3 = Point(0.5*width, sbor[3]).distance(Point(xp_kp2+xp_mid13, h_kp))
-max_kp3 = Point(0.5*width, sbor[2]).distance(Point(xp_kp2+xp_mid13, h_kp))
+min_nt3_l = Point(-0.5 * width, sbor[3]).distance(Point(xp_nt3 + xp_mid13, h_nt))
+max_nt3_l = Point(-0.5 * width, sbor[2]).distance(Point(xp_nt3 + xp_mid13, h_nt))
+min_nt3_r = Point(0.5 * width, sbor[3]).distance(Point(xp_nt3 + xp_mid13, h_nt))
+max_nt3_r = Point(0.5 * width, sbor[2]).distance(Point(xp_nt3 + xp_mid13, h_nt))
 
-min_up3 = Point(-0.5*width, sbor[3]).distance(Point(xp_up2+xp_mid13, h_up))
-max_up3 = Point(-0.5*width, sbor[2]).distance(Point(xp_up2+xp_mid13, h_up))
+min_kp3_l = Point(-0.5 * width, sbor[3]).distance(Point(xp_kp3 + xp_mid13, h_kp))
+max_kp3_l = Point(-0.5 * width, sbor[2]).distance(Point(xp_kp3 + xp_mid13, h_kp))
+min_kp3_r = Point(0.5 * width, sbor[3]).distance(Point(xp_kp3 + xp_mid13, h_kp))
+max_kp3_r = Point(0.5 * width, sbor[2]).distance(Point(xp_kp3 + xp_mid13, h_kp))
 
-min_ep3 = Point(0.5*width, sbor[3]).distance(Point(xp_ep2+xp_mid13, h_ep))
-max_ep3 = Point(0.5*width, sbor[2]).distance(Point(xp_ep2+xp_mid13, h_ep))
+min_up3_l = Point(-0.5 * width, sbor[3]).distance(Point(xp_up3 + xp_mid13, h_up))
+max_up3_l = Point(-0.5 * width, sbor[2]).distance(Point(xp_up3 + xp_mid13, h_up))
+min_up3_r = Point(0.5 * width, sbor[3]).distance(Point(xp_up3 + xp_mid13, h_up))
+max_up3_r = Point(0.5 * width, sbor[2]).distance(Point(xp_up3 + xp_mid13, h_up))
+
+min_ep3_l = Point(-0.5*width, sbor[3]).distance(Point(xp_ep3+xp_mid13, h_ep))
+max_ep3_l = Point(-0.5*width, sbor[2]).distance(Point(xp_ep3+xp_mid13, h_ep))
+min_ep3_r = Point(0.5*width, sbor[3]).distance(Point(xp_ep3+xp_mid13, h_ep))
+max_ep3_r = Point(0.5*width, sbor[2]).distance(Point(xp_ep3+xp_mid13, h_ep))
 
 
 Z0 = 377  # волновое сопротивление поля, Ом
@@ -446,6 +467,90 @@ def full_field(res_en):
 
 
 def ekran(en):
+    x, y, z = en[1]  # координаты точки
+
+    # расстояние от текущей точки до проводов - для расчёта лобовых окон
+    kppth = LineString([(x, y, z), (x, xp_kp, h_kp)])
+    ntpth = LineString([(x, y, z), (x, xp_nt, h_nt)])
+    uppth = LineString([(x, y, z), (x, xp_up, h_up)])
+    eppth = LineString([(x, y, z), (x, xp_ep, h_ep)])
+    # проверяем, попадает ли лобовое окно по направлению от текущей точки до проводов
+    kp_pass = kppth.intersects(frontWindleft) or kppth.intersects(frontWindright)
+    nt_pass = ntpth.intersects(frontWindleft) or ntpth.intersects(frontWindright)
+    up_pass = uppth.intersects(frontWindleft) or uppth.intersects(frontWindright)
+    ep_pass = eppth.intersects(frontWindleft) or eppth.intersects(frontWindright)
+
+    kp_dist = Point(y, z).distance(Point(xp_kp, h_kp))
+    kp_pass |= (kp_dist >= min_kp) and (kp_dist <= max_kp) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+    kp_pass |= (x >= sbor[0]) and (x <= sbor[1]) and (z >= sbor[2]) and (z <= sbor[3]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+
+    nt_dist = Point(y, z).distance(Point(xp_nt, h_nt))
+    nt_pass |= (nt_dist >= min_nt) and (nt_dist <= max_nt) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+    nt_pass |= (x >= sbor[0]) and (x <= sbor[1]) and (z >= sbor[2]) and (z <= sbor[3]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+
+    up_dist = Point(y, z).distance(Point(xp_up, h_up))
+    up_pass |= (up_dist >= min_up_l) and (up_dist <= max_up_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+    up_pass |= (up_dist >= min_up_r) and (up_dist <= max_up_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+
+    ep_dist = Point(y, z).distance(Point(xp_ep, h_ep))
+    ep_pass |= (ep_dist >= min_ep_l) and (ep_dist <= max_ep_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+    ep_pass |= (ep_dist >= min_ep_r) and (ep_dist <= max_ep_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+               and (z >= sbor[2]) and (z <= sbor[3])
+
+    kp_sec_dist = Point(y, z).distance(Point(xp_kp2 + xp_mid12, h_kp))
+    kp_sec_pass = (kp_sec_dist >= min_kp2_l) and (kp_sec_dist <= max_kp2_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+                  and (z >= sbor[2]) and (z <= sbor[3])
+    kp_sec_pass |= (kp_sec_dist >= min_kp2_r) and (kp_sec_dist <= max_kp2_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+                   and (z >= sbor[2]) and (z <= sbor[3])
+
+    nt_sec_dist = Point(y, z).distance(Point(xp_nt2 + xp_mid12, h_nt))
+    nt_sec_pass = (nt_sec_dist >= min_nt2_l) and (nt_sec_dist <= max_nt2_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+                  and (z >= sbor[2]) and (z <= sbor[3])
+    nt_sec_pass |= (nt_sec_dist >= min_nt2_r) and (nt_sec_dist <= max_nt2_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+                   and (z >= sbor[2]) and (z <= sbor[3])
+
+    up_sec_dist = Point(y, z).distance(Point(xp_up2 + xp_mid12, h_up))
+    up_sec_pass = (up_sec_dist >= min_up2_l) and (up_sec_dist <= max_up2_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+                  and (z >= sbor[2]) and (z <= sbor[3])
+    up_sec_pass |= (up_sec_dist >= min_up2_r) and (up_sec_dist <= max_up2_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+                   and (z >= sbor[2]) and (z <= sbor[3])
+
+    ep_sec_dist = Point(y, z).distance(Point(xp_ep2 + xp_mid12, h_ep))
+    ep_sec_pass = (ep_sec_dist >= min_ep2_l) and (ep_sec_dist <= max_ep2_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+                    and (z >= sbor[2]) and (z <= sbor[3])
+    ep_sec_pass |= (ep_sec_dist >= min_ep2_r) and (ep_sec_dist <= max_ep2_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+                    and (z >= sbor[2]) and (z <= sbor[3])
+
+    kp_thd_dist = Point(y, z).distance(Point(xp_kp3 + xp_mid13, h_kp))
+    kp_thd_pass = (kp_thd_dist >= min_kp3_l) and (kp_thd_dist <= max_kp3_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+                  and (z >= sbor[2]) and (z <= sbor[3])
+    kp_thd_pass |= (kp_thd_dist >= min_kp3_r) and (kp_thd_dist <= max_kp3_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+                   and (z >= sbor[2]) and (z <= sbor[3])
+
+    nt_thd_dist = Point(y, z).distance(Point(xp_nt3 + xp_mid13, h_nt))
+    nt_thd_pass = (nt_thd_dist >= min_nt3_l) and (nt_thd_dist <= max_nt3_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+                  and (z >= sbor[2]) and (z <= sbor[3])
+    nt_thd_pass |= (nt_thd_dist >= min_nt3_r) and (nt_thd_dist <= max_nt3_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+                   and (z >= sbor[2]) and (z <= sbor[3])
+
+    up_thd_dist = Point(y, z).distance(Point(xp_up3 + xp_mid13, h_up))
+    up_thd_pass = (up_thd_dist >= min_up3_l) and (up_thd_dist <= max_up3_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+                  and (z >= sbor[2]) and (z <= sbor[3])
+    up_thd_pass |= (up_thd_dist >= min_up3_r) and (up_thd_dist <= max_up3_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+                   and (z >= sbor[2]) and (z <= sbor[3])
+
+    ep_thd_dist = Point(y, z).distance(Point(xp_ep3 + xp_mid13, h_ep))
+    ep_thd_pass = (ep_thd_dist >= min_ep3_l) and (ep_thd_dist <= max_ep3_l) and (x >= sbor[0]) and (x <= sbor[1]) \
+                    and (z >= sbor[2]) and (z <= sbor[3])
+    ep_thd_pass |= (ep_thd_dist >= min_ep3_r) and (ep_thd_dist <= max_ep3_r) and (x >= sbor[0]) and (x <= sbor[1]) \
+                    and (z >= sbor[2]) and (z <= sbor[3])
 
     x, y, z = en[1]
     kppth = LineString([(x, y, z), (x, xp_kp, h_kp)])
@@ -478,19 +583,19 @@ def ekran(en):
     ep_sec_d = Point(y, z).distance(Point(xp_ep2 + xp_mid12, h_ep))
     ep_sec_p = (ep_sec_d >= min_ep2) and (ep_sec_d <= max_ep2) and (x >= sbor[0]) and (x <= sbor[1])
     
-    kp_thd_d = Point(y, z).distance(Point(xp_kp2+xp_mid13, h_kp))
-    kp_thd_p = (kp_sec_d >= min_kp2) and (kp_sec_d <= max_kp2) and (x >= sbor[0]) and (x <= sbor[1])
+    kp_thd_d = Point(y, z).distance(Point(xp_kp3+xp_mid13, h_kp))
+    kp_thd_p = (kp_thd_d >= min_kp3) and (kp_thd_d <= max_kp3) and (x >= sbor[0]) and (x <= sbor[1])
 
-    nt_thd_d = Point(y, z).distance(Point(xp_nt2+xp_mid13, h_nt))
-    nt_thd_p = (nt_sec_d >= min_nt2) and (nt_sec_d <= max_nt2) and (x >= sbor[0]) and (x <= sbor[1])
+    nt_thd_d = Point(y, z).distance(Point(xp_nt3+xp_mid13, h_nt))
+    nt_thd_p = (nt_thd_d >= min_nt3) and (nt_thd_d <= max_nt3) and (x >= sbor[0]) and (x <= sbor[1])
 
-    up_thd_d = Point(y, z).distance(Point(xp_up2+xp_mid13, h_up))
-    up_thd_p = (up_sec_d >= min_up2) and (up_sec_d <= max_up2) and (x >= sbor[0]) and (x <= sbor[1])
+    up_thd_d = Point(y, z).distance(Point(xp_up3+xp_mid13, h_up))
+    up_thd_p = (up_thd_d >= min_up3) and (up_thd_d <= max_up3) and (x >= sbor[0]) and (x <= sbor[1])
 
-    ep_thd_d = Point(y, z).distance(Point(xp_ep2 + xp_mid13, h_ep))
-    ep_thd_p = (ep_sec_d >= min_ep2) and (ep_sec_d <= max_ep2) and (x >= sbor[0]) and (x <= sbor[1])
+    ep_thd_d = Point(y, z).distance(Point(xp_ep3 + xp_mid13, h_ep))
+    ep_thd_p = (ep_thd_d >= min_ep3) and (ep_thd_d <= max_ep3) and (x >= sbor[0]) and (x <= sbor[1])
 
-    if (abs(y) <= 0.5*width) and (z >= floor) and (z <= floor+height):
+    if (abs(y) <= 0.5*width) and (z >= floor) and (z <= floor+height) and (x < length):
         if not kp_pass:
             for f in en[0].keys():
                 en[0][f][0][0] /= kh
